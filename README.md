@@ -123,7 +123,7 @@
         
         .btn-success { background: linear-gradient(135deg, #10b981, #047857); box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3); }
         
-        select, input[type="text"], input[type="password"], input[type="number"] { 
+        select, input[type="text"], input[type="password"] { 
             background-color: #0f172a;
             color: white;
             padding: 8px 12px; 
@@ -374,7 +374,6 @@
         let mId = 1;
         for (let i = 0; i < teams.length; i++) {
             for (let j = i + 1; j < teams.length; j++) {
-                // 每場對賽預設包含 3 個 set (s1, s2 分數)，初始為空
                 matchObj[groupId].push({ 
                     id: `${groupId}-${mId++}`, 
                     t1: teams[i], 
@@ -474,7 +473,6 @@
                         t1Obj.totalScore += s1;
                         t2Obj.totalScore += s2;
 
-                        // 每一局若分數 >= 4 即算贏得該局
                         if(s1 >= 4 && s1 > s2) {
                             t1SetsWon++;
                         } else if(s2 >= 4 && s2 > s1) {
@@ -491,15 +489,12 @@
                     t2Obj.winGames += t2SetsWon;
                     t2Obj.loseGames += t1SetsWon;
 
-                    // 三盤兩勝積分判定：2:0或2:1得3分/0分 或 對賽勝負
-                    if(t1SetsWon === 2 && t2SetsWon === 0) { t1Obj.pts += 3; }
-                    else if(t1SetsWon === 2 && t2SetsWon === 1) { t1Obj.pts += 2; t2Obj.pts += 1; }
-                    else if(t1SetsWon === 1 && t2SetsWon === 2) { t2Obj.pts += 2; t1Obj.pts += 1; }
-                    else if(t1SetsWon === 0 && t2SetsWon === 2) { t2Obj.pts += 3; }
+                    // 積分計算：贏得一局得 1 分（即贏幾局就加幾分）
+                    t1Obj.pts += t1SetsWon;
+                    t2Obj.pts += t2SetsWon;
                 }
             });
 
-            // 排序：積分高優先 -> 贏局多優先 -> 賽分(總得分)高優先
             st[g].sort((a, b) => {
                 if (b.pts !== a.pts) return b.pts - a.pts;
                 if (b.winGames !== a.winGames) return b.winGames - a.winGames;
@@ -520,7 +515,6 @@
         for(let g in groups) {
             if(groups[g].length === 0) continue;
             html += `<h3>組別 ${g}</h3><div class="grid-2">`;
-            // 積分榜增加「賽分」欄位
             html += `<div><h4>積分榜</h4><table><tr><th>名</th><th>隊伍</th><th>賽</th><th>贏局</th><th>輸局</th><th>賽分</th><th>積分</th></tr>`;
             st[g].forEach((t, i) => {
                 html += `<tr><td>${i+1}</td><td><b>${t.name}</b></td><td>${t.played}</td><td style="color:#34d399; font-weight:600;">${t.winGames}</td><td style="color:#f43f5e;">${t.loseGames}</td><td>${t.totalScore}</td><td><b>${t.pts}</b></td></tr>`;
@@ -538,13 +532,16 @@
                     </div>
                     <div class="sets-container">`;
                 
-                // 渲染 3 個 set 的輸入
+                let opts = ['','0','1','2','3'];
                 m.sets.forEach((set, sIdx) => {
+                    let opt1 = opts.map(o => `<option value="${o}" ${set.t1Score===o?'selected':''}>${o===''?'-':o}</option>`).join('');
+                    let opt2 = opts.map(o => `<option value="${o}" ${set.t2Score===o?'selected':''}>${o===''?'-':o}</option>`).join('');
+
                     html += `<div class="set-box">
                         <span>Set ${sIdx+1}:</span>
-                        <input type="number" min="0" max="10" ${dis} style="width:40px; padding:4px;" value="${set.t1Score}" oninput="updateSetScore('${type}','${g}','${m.id}',${sIdx},1,this.value)">
+                        <select ${dis} style="width:50px; padding:2px;" onchange="updateSetScore('${type}','${g}','${m.id}',${sIdx},1,this.value)">${opt1}</select>
                         <span>:</span>
-                        <input type="number" min="0" max="10" ${dis} style="width:40px; padding:4px;" value="${set.t2Score}" oninput="updateSetScore('${type}','${g}','${m.id}',${sIdx},2,this.value)">
+                        <select ${dis} style="width:50px; padding:2px;" onchange="updateSetScore('${type}','${g}','${m.id}',${sIdx},2,this.value)">${opt2}</select>
                     </div>`;
                 });
 
@@ -577,25 +574,38 @@
     }
 
     function generateKoSchedule() {
-        let ko = [];
-        youthBracketState.qf.forEach(m => { if(m.t1 && m.t2) ko.push({stage:'青年八強', t1:m.t1, t2:m.t2}); });
-        youthBracketState.sf.forEach(m => { if(m.t1 && m.t2) ko.push({stage:'青年四強', t1:m.t1, t2:m.t2}); });
-        if(youthBracketState.final.t1 && youthBracketState.final.t2) ko.push({stage:'青年決賽', t1:youthBracketState.final.t1, t2:youthBracketState.final.t2});
-        if(youthBracketState.third.t1 && youthBracketState.third.t2) ko.push({stage:'青年季軍', t1:youthBracketState.third.t1, t2:youthBracketState.third.t2});
-        
-        kidsBracketState.sf.forEach(m => { if(m.t1 && m.t2) ko.push({stage:'兒童四強', t1:m.t1, t2:m.t2}); });
-        if(kidsBracketState.final.t1 && kidsBracketState.final.t2) ko.push({stage:'兒童決賽', t1:kidsBracketState.final.t1, t2:kidsBracketState.final.t2});
-        if(kidsBracketState.third.t1 && kidsBracketState.third.t2) ko.push({stage:'兒童季軍', t1:kidsBracketState.third.t1, t2:kidsBracketState.third.t2});
+        let koFinals = []; 
+        let koOthers = []; 
 
-        if(ko.length === 0) { 
+        youthBracketState.qf.forEach(m => { if(m.t1 && m.t2) koOthers.push({stage:'青年八強', t1:m.t1, t2:m.t2}); });
+        youthBracketState.sf.forEach(m => { if(m.t1 && m.t2) koOthers.push({stage:'青年四強', t1:m.t1, t2:m.t2}); });
+        kidsBracketState.sf.forEach(m => { if(m.t1 && m.t2) koOthers.push({stage:'兒童四強', t1:m.t1, t2:m.t2}); });
+
+        if(youthBracketState.third.t1 && youthBracketState.third.t2) koFinals.push({stage:'青年季軍', t1:youthBracketState.third.t1, t2:youthBracketState.third.t2});
+        if(kidsBracketState.third.t1 && kidsBracketState.third.t2) koFinals.push({stage:'兒童季軍', t1:kidsBracketState.third.t1, t2:kidsBracketState.third.t2});
+        if(youthBracketState.final.t1 && youthBracketState.final.t2) koFinals.push({stage:'青年決賽', t1:youthBracketState.final.t1, t2:youthBracketState.final.t2});
+        if(kidsBracketState.final.t1 && kidsBracketState.final.t2) koFinals.push({stage:'兒童決賽', t1:kidsBracketState.final.t1, t2:kidsBracketState.final.t2});
+
+        let allKo = [...koOthers, ...koFinals];
+        if(allKo.length === 0) { 
             document.getElementById('koScheduleContainer').innerHTML = '請先初始化走線圖。';
             return; 
         }
+
         let tables = [[],[],[]];
-        ko.forEach((m, i) => tables[i % 3].push(m));
+        let finalIdx = 0;
+        koFinals.forEach(m => {
+            tables[finalIdx % 2].push(m);
+            finalIdx++;
+        });
+
+        koOthers.forEach((m, i) => {
+            tables[i % 3].push(m);
+        });
+
         let html = '<div class="grid-3">';
         tables.forEach((t, i) => {
-            html += `<div><h3>盤 ${i+1}</h3><ul>`;
+            html += `<div><h3>盤 ${i+1}${i < 2 && koFinals.length > 0 ? ' (含決賽/季軍)' : ''}</h3><ul>`;
             t.forEach(m => html += `<li>[${m.stage}] ${m.t1} vs ${m.t2}</li>`);
             html += `</ul></div>`;
         });
@@ -686,10 +696,8 @@
 
     function renderYouthBracket() {
         let dis = isAdmin ? '' : 'disabled';
-        let opts3 = ['','2','1','0'];
         let opts5 = ['','3','2','1','0'];
 
-        // 八強、四強均改為五盤三勝 (0~3)
         let html = `<div class="bracket-round"><h3>八強 (5盤3勝)</h3>` + youthBracketState.qf.map((m,i)=>{
             let o1 = opts5.map(o => `<option value="${o}" ${m.s1===o?'selected':''}>${o===''?'-':o}</option>`).join('');
             let o2 = opts5.map(o => `<option value="${o}" ${m.s2===o?'selected':''}>${o===''?'-':o}</option>`).join('');
@@ -760,7 +768,6 @@
         let dis = isAdmin ? '' : 'disabled';
         let opts5 = ['','3','2','1','0'];
 
-        // 兒童組四強同樣改為五盤三勝
         let html = `<div class="bracket-round"><h3>四強 (5盤3勝)</h3>` + kidsBracketState.sf.map((m,i)=>{
             let o1 = opts5.map(o => `<option value="${o}" ${m.s1===o?'selected':''}>${o===''?'-':o}</option>`).join('');
             let o2 = opts5.map(o => `<option value="${o}" ${m.s2===o?'selected':''}>${o===''?'-':o}</option>`).join('');
@@ -804,7 +811,7 @@
                 <div style="text-align:center;font-size:12px;color:var(--text-muted);margin:2px 0;">VS</div>
                 <div class="bracket-team-box ${kidsBracketState.third.w===kidsBracketState.third.t2 && kidsBracketState.third.t2?'winner':''}">
                     <span class="bracket-team-name">${kidsBracketState.third.t2||'等待'}</span>
-                    <select class="bracket-score-select" ${dis} onchange="updateBracketMatch('kids','third',0,'${kidsBracketState.third.t1}',this.value)">${tO2}</select>
+                    <select class="bracket-score-select" ${dis} onchange="updateBracketMatch('kids','third',0,'${kidsBracketState.third.s1}',this.value)">${tO2}</select>
                 </div>
             </div>
         </div>`;
