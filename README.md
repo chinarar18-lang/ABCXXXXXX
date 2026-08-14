@@ -169,7 +169,7 @@
         .bracket-match { background: #0f172a; border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin: 8px 0; }
         .bracket-team-box { background: #1e293b; border: 1px solid var(--border); border-radius: 8px; padding: 8px; margin: 4px 0; display: flex; align-items: center; justify-content: space-between; gap: 6px; }
         .bracket-team-name { font-weight: 600; color: #f8fafc; font-size: 14px; flex: 1; text-align: left; }
-        .bracket-score-input { width: 45px !important; padding: 4px !important; text-align: center; font-size: 14px !important; }
+        .bracket-score-select { width: 60px !important; padding: 4px !important; text-align: center; font-size: 14px !important; }
         
         @media (max-width: 768px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
     </style>
@@ -494,7 +494,6 @@
             html += `</table></div><div><h4>對賽比分填寫</h4>`;
             matches[g].forEach(m => {
                 let dis = isAdmin ? '' : 'disabled';
-                // 更改為下拉選單：0, 1, 2, 3
                 let opts = ['','0','1','2','3'];
                 let optHtml1 = opts.map(o => `<option value="${o}" ${m.s1===o?'selected':''}>${o===''?'-':o}</option>`).join('');
                 let optHtml2 = opts.map(o => `<option value="${o}" ${m.s2===o?'selected':''}>${o===''?'-':o}</option>`).join('');
@@ -575,7 +574,7 @@
         if(!st['D'] || !st['D'][0]) { alert('請先完成小組賽'); return; }
         kidsBracketState.sf = [
             {t1: st['D'][0]?.name||'', t2: st['E'][1]?.name||'', s1:'', s2:'', w:''},
-            {t1: st['E'][0]?.name||'', t2: st['D'][1]?.name||'', s1:'', s2:'', w:''}
+            {t1: st['E'][0]?.name||'', t2: st['D'][1]?.name||'', s1:'', s2:'' , w:''}
         ];
         renderKidsBracket();
         alert('兒童組四強生成成功！');
@@ -641,57 +640,78 @@
 
     function renderYouthBracket() {
         let dis = isAdmin ? '' : 'disabled';
+        
+        // 八強、兒童四強 (三盤兩勝：可選 2, 1, 0)
+        let opts3 = ['','2','1','0'];
+        let genSelect3 = (sVal, roundName, roundIdx, targetT) => {
+            let otherS = targetT === 1 ? youthBracketState.qf[roundIdx].s2 : youthBracketState.qf[roundIdx].s1;
+            if(roundName==='sf') otherS = targetT === 1 ? youthBracketState.sf[roundIdx].s2 : youthBracketState.sf[roundIdx].s1;
+            return opts3.map(o => `<option value="${o}" ${sVal===o?'selected':''}>${o===''?'-':o}</option>`).join('');
+        };
+
+        // 四強、冠軍戰、季軍戰 (五盤三勝：可選 3, 2, 1, 0)
+        let opts5 = ['','3','2','1','0'];
+
         let html = `<div class="bracket-round"><h3>八強</h3>` + youthBracketState.qf.map((m,i)=>{
+            let o1 = opts3.map(o => `<option value="${o}" ${m.s1===o?'selected':''}>${o===''?'-':o}</option>`).join('');
+            let o2 = opts3.map(o => `<option value="${o}" ${m.s2===o?'selected':''}>${o===''?'-':o}</option>`).join('');
             return `<div class="bracket-match">
                 <div class="bracket-team-box ${youthBracketState.qf[i].w===m.t1 && m.t1?'winner':''}">
                     <span class="bracket-team-name">${m.t1||'等待'}</span>
-                    <input type="text" class="bracket-score-input" ${dis} value="${m.s1}" placeholder="比分" oninput="updateBracketMatch('youth','qf',${i},this.value,'${m.s2}')">
+                    <select class="bracket-score-select" ${dis} onchange="updateBracketMatch('youth','qf',${i},this.value,'${m.s2}')">${o1}</select>
                 </div>
                 <div style="text-align:center;font-size:12px;color:var(--text-muted);margin:2px 0;">VS</div>
                 <div class="bracket-team-box ${youthBracketState.qf[i].w===m.t2 && m.t2?'winner':''}">
                     <span class="bracket-team-name">${m.t2||'等待'}</span>
-                    <input type="text" class="bracket-score-input" ${dis} value="${m.s2}" placeholder="比分" oninput="updateBracketMatch('youth','qf',${i},'${m.s1}',this.value)">
+                    <select class="bracket-score-select" ${dis} onchange="updateBracketMatch('youth','qf',${i},'${m.s1}',this.value)">${o2}</select>
                 </div>
             </div>`;
         }).join('') + `</div>`;
 
         html += `<div class="bracket-round"><h3>四強</h3>` + youthBracketState.sf.map((m,i)=>{
+            let o1 = opts5.map(o => `<option value="${o}" ${m.s1===o?'selected':''}>${o===''?'-':o}</option>`).join('');
+            let o2 = opts5.map(o => `<option value="${o}" ${m.s2===o?'selected':''}>${o===''?'-':o}</option>`).join('');
             return `<div class="bracket-match" style="margin:40px 0;">
                 <div class="bracket-team-box ${youthBracketState.sf[i].w===m.t1 && m.t1?'winner':''}">
                     <span class="bracket-team-name">${m.t1||'等待'}</span>
-                    <input type="text" class="bracket-score-input" ${dis} value="${m.s1}" placeholder="比分" oninput="updateBracketMatch('youth','sf',${i},this.value,'${m.s2}')">
+                    <select class="bracket-score-select" ${dis} onchange="updateBracketMatch('youth','sf',${i},this.value,'${m.s2}')">${o1}</select>
                 </div>
                 <div style="text-align:center;font-size:12px;color:var(--text-muted);margin:2px 0;">VS</div>
                 <div class="bracket-team-box ${youthBracketState.sf[i].w===m.t2 && m.t2?'winner':''}">
                     <span class="bracket-team-name">${m.t2||'等待'}</span>
-                    <input type="text" class="bracket-score-input" ${dis} value="${m.s2}" placeholder="比分" oninput="updateBracketMatch('youth','sf',${i},'${m.s1}',this.value)">
+                    <select class="bracket-score-select" ${dis} onchange="updateBracketMatch('youth','sf',${i},'${m.s1}',this.value)">${o2}</select>
                 </div>
             </div>`;
         }).join('') + `</div>`;
 
+        let fO1 = opts5.map(o => `<option value="${o}" ${youthBracketState.final.s1===o?'selected':''}>${o===''?'-':o}</option>`).join('');
+        let fO2 = opts5.map(o => `<option value="${o}" ${youthBracketState.final.s2===o?'selected':''}>${o===''?'-':o}</option>`).join('');
+        let tO1 = opts5.map(o => `<option value="${o}" ${youthBracketState.third.s1===o?'selected':''}>${o===''?'-':o}</option>`).join('');
+        let tO2 = opts5.map(o => `<option value="${o}" ${youthBracketState.third.s2===o?'selected':''}>${o===''?'-':o}</option>`).join('');
+
         html += `<div class="bracket-round"><h3>決賽</h3>
             <div class="bracket-match">
-                <h4 style="margin:0 0 4px;color:var(--primary-light);">冠軍戰</h4>
+                <h4 style="margin:0 0 4px;color:var(--primary-light);">冠軍戰 (5盤3勝)</h4>
                 <div class="bracket-team-box ${youthBracketState.final.w===youthBracketState.final.t1 && youthBracketState.final.t1?'winner':''}">
                     <span class="bracket-team-name">${youthBracketState.final.t1||'等待'}</span>
-                    <input type="text" class="bracket-score-input" ${dis} value="${youthBracketState.final.s1}" placeholder="比分" oninput="updateBracketMatch('youth','final',0,this.value,'${youthBracketState.final.s2}')">
+                    <select class="bracket-score-select" ${dis} onchange="updateBracketMatch('youth','final',0,this.value,'${youthBracketState.final.s2}')">${fO1}</select>
                 </div>
                 <div style="text-align:center;font-size:12px;color:var(--text-muted);margin:2px 0;">VS</div>
                 <div class="bracket-team-box ${youthBracketState.final.w===youthBracketState.final.t2 && youthBracketState.final.t2?'winner':''}">
                     <span class="bracket-team-name">${youthBracketState.final.t2||'等待'}</span>
-                    <input type="text" class="bracket-score-input" ${dis} value="${youthBracketState.final.s2}" placeholder="比分" oninput="updateBracketMatch('youth','final',0,'${youthBracketState.final.s1}',this.value)">
+                    <select class="bracket-score-select" ${dis} onchange="updateBracketMatch('youth','final',0,'${youthBracketState.final.s1}',this.value)">${fO2}</select>
                 </div>
             </div>
             <div class="bracket-match">
-                <h4 style="margin:0 0 4px;color:var(--text-muted);">季軍戰</h4>
+                <h4 style="margin:0 0 4px;color:var(--text-muted);">季軍戰 (5盤3勝)</h4>
                 <div class="bracket-team-box ${youthBracketState.third.w===youthBracketState.third.t1 && youthBracketState.third.t1?'winner':''}">
                     <span class="bracket-team-name">${youthBracketState.third.t1||'等待'}</span>
-                    <input type="text" class="bracket-score-input" ${dis} value="${youthBracketState.third.s1}" placeholder="比分" oninput="updateBracketMatch('youth','third',0,this.value,'${youthBracketState.third.s2}')">
+                    <select class="bracket-score-select" ${dis} onchange="updateBracketMatch('youth','third',0,this.value,'${youthBracketState.third.s2}')">${tO1}</select>
                 </div>
                 <div style="text-align:center;font-size:12px;color:var(--text-muted);margin:2px 0;">VS</div>
                 <div class="bracket-team-box ${youthBracketState.third.w===youthBracketState.third.t2 && youthBracketState.third.t2?'winner':''}">
                     <span class="bracket-team-name">${youthBracketState.third.t2||'等待'}</span>
-                    <input type="text" class="bracket-score-input" ${dis} value="${youthBracketState.third.s2}" placeholder="比分" oninput="updateBracketMatch('youth','third',0,'${youthBracketState.third.s1}',this.value)">
+                    <select class="bracket-score-select" ${dis} onchange="updateBracketMatch('youth','third',0,'${youthBracketState.third.s1}',this.value)">${tO2}</select>
                 </div>
             </div>
         </div>`;
@@ -700,43 +720,53 @@
 
     function renderKidsBracket() {
         let dis = isAdmin ? '' : 'disabled';
-        let html = `<div class="bracket-round"><h3>四強</h3>` + kidsBracketState.sf.map((m,i)=>{
+        let opts3 = ['','2','1','0'];
+        let opts5 = ['','3','2','1','0'];
+
+        let html = `<div class="bracket-round"><h3>四強 (3盤2勝)</h3>` + kidsBracketState.sf.map((m,i)=>{
+            let o1 = opts3.map(o => `<option value="${o}" ${m.s1===o?'selected':''}>${o===''?'-':o}</option>`).join('');
+            let o2 = opts3.map(o => `<option value="${o}" ${m.s2===o?'selected':''}>${o===''?'-':o}</option>`).join('');
             return `<div class="bracket-match" style="margin:20px 0;">
                 <div class="bracket-team-box ${kidsBracketState.sf[i].w===m.t1 && m.t1?'winner':''}">
                     <span class="bracket-team-name">${m.t1||'等待'}</span>
-                    <input type="text" class="bracket-score-input" ${dis} value="${m.s1}" placeholder="比分" oninput="updateBracketMatch('kids','sf',${i},this.value,'${m.s2}')">
+                    <select class="bracket-score-select" ${dis} onchange="updateBracketMatch('kids','sf',${i},this.value,'${m.s2}')">${o1}</select>
                 </div>
                 <div style="text-align:center;font-size:12px;color:var(--text-muted);margin:2px 0;">VS</div>
                 <div class="bracket-team-box ${kidsBracketState.sf[i].w===m.t2 && m.t2?'winner':''}">
                     <span class="bracket-team-name">${m.t2||'等待'}</span>
-                    <input type="text" class="bracket-score-input" ${dis} value="${m.s2}" placeholder="比分" oninput="updateBracketMatch('kids','sf',${i},'${m.s1}',this.value)">
+                    <select class="bracket-score-select" ${dis} onchange="updateBracketMatch('kids','sf',${i},'${m.s1}',this.value)">${o2}</select>
                 </div>
             </div>`;
         }).join('') + `</div>`;
 
+        let fO1 = opts5.map(o => `<option value="${o}" ${kidsBracketState.final.s1===o?'selected':''}>${o===''?'-':o}</option>`).join('');
+        let fO2 = opts5.map(o => `<option value="${o}" ${kidsBracketState.final.s2===o?'selected':''}>${o===''?'-':o}</option>`).join('');
+        let tO1 = opts5.map(o => `<option value="${o}" ${kidsBracketState.third.s1===o?'selected':''}>${o===''?'-':o}</option>`).join('');
+        let tO2 = opts5.map(o => `<option value="${o}" ${kidsBracketState.third.s2===o?'selected':''}>${o===''?'-':o}</option>`).join('');
+
         html += `<div class="bracket-round"><h3>決賽</h3>
             <div class="bracket-match">
-                <h4 style="margin:0 0 4px;color:var(--primary-light);">冠軍戰</h4>
+                <h4 style="margin:0 0 4px;color:var(--primary-light);">冠軍戰 (5盤3勝)</h4>
                 <div class="bracket-team-box ${kidsBracketState.final.w===kidsBracketState.final.t1 && kidsBracketState.final.t1?'winner':''}">
                     <span class="bracket-team-name">${kidsBracketState.final.t1||'等待'}</span>
-                    <input type="text" class="bracket-score-input" ${dis} value="${kidsBracketState.final.s1}" placeholder="比分" oninput="updateBracketMatch('kids','final',0,this.value,'${kidsBracketState.final.s2}')">
+                    <select class="bracket-score-select" ${dis} onchange="updateBracketMatch('kids','final',0,this.value,'${kidsBracketState.final.s2}')">${fO1}</select>
                 </div>
                 <div style="text-align:center;font-size:12px;color:var(--text-muted);margin:2px 0;">VS</div>
                 <div class="bracket-team-box ${kidsBracketState.final.w===kidsBracketState.final.t2 && kidsBracketState.final.t2?'winner':''}">
                     <span class="bracket-team-name">${kidsBracketState.final.t2||'等待'}</span>
-                    <input type="text" class="bracket-score-input" ${dis} value="${kidsBracketState.final.s2}" placeholder="比分" oninput="updateBracketMatch('kids','final',0,'${kidsBracketState.final.s1}',this.value)">
+                    <select class="bracket-score-select" ${dis} onchange="updateBracketMatch('kids','final',0,'${kidsBracketState.final.s1}',this.value)">${fO2}</select>
                 </div>
             </div>
             <div class="bracket-match">
-                <h4 style="margin:0 0 4px;color:var(--text-muted);">季軍戰</h4>
+                <h4 style="margin:0 0 4px;color:var(--text-muted);">季軍戰 (5盤3勝)</h4>
                 <div class="bracket-team-box ${kidsBracketState.third.w===kidsBracketState.third.t1 && kidsBracketState.third.t1?'winner':''}">
                     <span class="bracket-team-name">${kidsBracketState.third.t1||'等待'}</span>
-                    <input type="text" class="bracket-score-input" ${dis} value="${kidsBracketState.third.s1}" placeholder="比分" oninput="updateBracketMatch('kids','third',0,this.value,'${kidsBracketState.third.s2}')">
+                    <select class="bracket-score-select" ${dis} onchange="updateBracketMatch('kids','third',0,this.value,'${kidsBracketState.third.s2}')">${tO1}</select>
                 </div>
                 <div style="text-align:center;font-size:12px;color:var(--text-muted);margin:2px 0;">VS</div>
                 <div class="bracket-team-box ${kidsBracketState.third.w===kidsBracketState.third.t2 && kidsBracketState.third.t2?'winner':''}">
                     <span class="bracket-team-name">${kidsBracketState.third.t2||'等待'}</span>
-                    <input type="text" class="bracket-score-input" ${dis} value="${kidsBracketState.third.s2}" placeholder="比分" oninput="updateBracketMatch('kids','third',0,'${kidsBracketState.third.s1}',this.value)">
+                    <select class="bracket-score-select" ${dis} onchange="updateBracketMatch('kids','third',0,'${kidsBracketState.third.s1}',this.value)">${tO2}</select>
                 </div>
             </div>
         </div>`;
