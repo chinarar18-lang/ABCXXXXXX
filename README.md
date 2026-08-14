@@ -8,7 +8,6 @@
     <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=M+PLUS+Rounded+1c:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root { 
-            /* 深藍色主題調色盤 */
             --primary: #3b82f6; 
             --primary-dark: #1e3a8a; 
             --primary-light: #60a5fa;
@@ -125,19 +124,17 @@
         
         .btn-success { background: linear-gradient(135deg, #10b981, #047857); box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3); }
         
-        input[type="number"], input[type="password"] { 
+        select, input[type="text"], input[type="password"] { 
             background-color: #0f172a;
             color: white;
-            width: 55px; 
-            padding: 8px; 
+            padding: 8px 12px; 
             border: 1px solid var(--border); 
             border-radius: 8px; 
-            text-align: center; 
             font-size: 15px; 
             font-family: inherit;
         }
         
-        input:disabled, textarea:disabled { background-color: #0b1120; color: var(--text-muted); cursor: not-allowed; }
+        select:disabled, input:disabled, textarea:disabled { background-color: #0b1120; color: var(--text-muted); cursor: not-allowed; }
         
         textarea { 
             width: 100%; 
@@ -168,12 +165,11 @@
         .team-name.right { text-align: left; }
         
         .bracket-container { display: flex; justify-content: space-between; gap: 16px; overflow-x: auto; padding: 10px 0; }
-        .bracket-round { display: flex; flex-direction: column; justify-content: space-around; flex: 1; min-width: 200px; }
+        .bracket-round { display: flex; flex-direction: column; justify-content: space-around; flex: 1; min-width: 220px; }
         .bracket-match { background: #0f172a; border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin: 8px 0; }
-        .bracket-team { padding: 10px; margin: 4px 0; background: #1e293b; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; text-align: center; font-weight: 600; transition: all 0.2s; color: #f8fafc; }
-        .bracket-team.readonly { cursor: default; }
-        .bracket-team:not(.readonly):hover { border-color: var(--primary); background-color: #1e3a8a; }
-        .bracket-team.winner { background-color: rgba(16, 185, 129, 0.2); border-color: var(--success); color: #34d399; }
+        .bracket-team-box { background: #1e293b; border: 1px solid var(--border); border-radius: 8px; padding: 8px; margin: 4px 0; display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+        .bracket-team-name { font-weight: 600; color: #f8fafc; font-size: 14px; flex: 1; text-align: left; }
+        .bracket-score-input { width: 45px !important; padding: 4px !important; text-align: center; font-size: 14px !important; }
         
         @media (max-width: 768px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
     </style>
@@ -292,8 +288,8 @@
 
     let isAdmin = false;
     let state = { youthTeamsInputText: '', kidsTeamsInputText: '', youthGroups: { 'A': [], 'B': [], 'C': [] }, kidsGroups: { 'D': [], 'E': [] }, youthMatches: {}, kidsMatches: {} };
-    let youthBracketState = { qf: Array(4).fill({t1:'', t2:'', w:null}), sf: Array(2).fill({t1:'', t2:'', w:null}), final: {t1:'', t2:'', w:null}, third: {t1:'', t2:'', w:null} };
-    let kidsBracketState = { sf: Array(2).fill({t1:'', t2:'', w:null}), final: {t1:'', t2:'', w:null}, third: {t1:'', t2:'', w:null} };
+    let youthBracketState = { qf: Array(4).fill({t1:'', t2:'', s1:'', s2:'', w:''}), sf: Array(2).fill({t1:'', t2:'', s1:'', s2:'', w:''}), final: {t1:'', t2:'', s1:'', s2:'', w:''}, third: {t1:'', t2:'', s1:'', s2:'', w:''} };
+    let kidsBracketState = { sf: Array(2).fill({t1:'', t2:'', s1:'', s2:'', w:''}), final: {t1:'', t2:'', s1:'', s2:'', w:''}, third: {t1:'', t2:'', s1:'', s2:'', w:''} };
 
     window.onload = function() { fetchFromCloud(); };
 
@@ -376,7 +372,7 @@
         let mId = 1;
         for (let i = 0; i < teams.length; i++) {
             for (let j = i + 1; j < teams.length; j++) {
-                matchObj[groupId].push({ id: `${groupId}-${mId++}`, t1: teams[i], t2: teams[j], s1: null, s2: null });
+                matchObj[groupId].push({ id: `${groupId}-${mId++}`, t1: teams[i], t2: teams[j], s1: "", s2: "" });
             }
         }
     }
@@ -438,8 +434,8 @@
         let matches = type === 'youth' ? state.youthMatches[groupId] : state.kidsMatches[groupId];
         let m = matches.find(x => x.id === matchId);
         if(m) {
-            if(tIndex === 1) m.s1 = val !== "" ? parseInt(val) : null;
-            if(tIndex === 2) m.s2 = val !== "" ? parseInt(val) : null;
+            if(tIndex === 1) m.s1 = val;
+            if(tIndex === 2) m.s2 = val;
         }
         renderGroupView(type);
     }
@@ -450,20 +446,22 @@
             st[g] = groups[g].map(name => ({ name, played: 0, winGames: 0, loseGames: 0, pts: 0 }));
             if(!matches[g]) continue;
             matches[g].forEach(m => {
-                if(m.s1 !== null && m.s2 !== null) {
+                if(m.s1 !== "" && m.s2 !== "") {
+                    let s1 = parseInt(m.s1);
+                    let s2 = parseInt(m.s2);
                     let t1 = st[g].find(x => x.name === m.t1);
                     let t2 = st[g].find(x => x.name === m.t2);
                     if(t1 && t2) {
                         t1.played++; t2.played++;
-                        t1.winGames += m.s1;
-                        t1.loseGames += m.s2;
-                        t2.winGames += m.s2;
-                        t2.loseGames += m.s1;
+                        t1.winGames += s1;
+                        t1.loseGames += s2;
+                        t2.winGames += s2;
+                        t2.loseGames += s1;
 
-                        if(m.s1 === 3 && m.s2 === 0) { t1.pts += 3; }
-                        else if(m.s1 === 2 && m.s2 === 1) { t1.pts += 2; t2.pts += 1; }
-                        else if(m.s1 === 1 && m.s2 === 2) { t2.pts += 2; t1.pts += 1; }
-                        else if(m.s1 === 0 && m.s2 === 3) { t2.pts += 3; }
+                        if(s1 === 3 && s2 === 0) { t1.pts += 3; }
+                        else if(s1 === 2 && s2 === 1) { t1.pts += 2; t2.pts += 1; }
+                        else if(s1 === 1 && s2 === 2) { t2.pts += 2; t1.pts += 1; }
+                        else if(s1 === 0 && s2 === 3) { t2.pts += 3; }
                     }
                 }
             });
@@ -496,7 +494,12 @@
             html += `</table></div><div><h4>對賽比分填寫</h4>`;
             matches[g].forEach(m => {
                 let dis = isAdmin ? '' : 'disabled';
-                html += `<div class="match-row"><span class="team-name">${m.t1}</span><input type="number" min="0" max="3" ${dis} value="${m.s1 !== null ? m.s1 : ''}" onchange="updateScore('${type}','${g}','${m.id}',1,this.value)"><span>:</span><input type="number" min="0" max="3" ${dis} value="${m.s2 !== null ? m.s2 : ''}" onchange="updateScore('${type}','${g}','${m.id}',2,this.value)"><span class="team-name right">${m.t2}</span></div>`;
+                // 更改為下拉選單：0, 1, 2, 3
+                let opts = ['','0','1','2','3'];
+                let optHtml1 = opts.map(o => `<option value="${o}" ${m.s1===o?'selected':''}>${o===''?'-':o}</option>`).join('');
+                let optHtml2 = opts.map(o => `<option value="${o}" ${m.s2===o?'selected':''}>${o===''?'-':o}</option>`).join('');
+
+                html += `<div class="match-row"><span class="team-name">${m.t1}</span><select ${dis} onchange="updateScore('${type}','${g}','${m.id}',1,this.value)">${optHtml1}</select><span>:</span><select ${dis} onchange="updateScore('${type}','${g}','${m.id}',2,this.value)">${optHtml2}</select><span class="team-name right">${m.t2}</span></div>`;
             });
             html += `</div></div><hr style="border:0; border-top:1px solid var(--border); margin: 20px 0;">`;
         }
@@ -557,10 +560,10 @@
         };
         let thirds = [{g:'A', ...st['A'][2]}, {g:'B', ...st['B'][2]}, {g:'C', ...st['C'][2]}].filter(x => x.name).sort((a,b)=>b.pts-a.pts);
         youthBracketState.qf = [
-            {t1: t.A1, t2: thirds[0]?.name || '第三名1', w:null},
-            {t1: t.B2, t2: t.C2, w:null},
-            {t1: t.B1, t2: thirds[1]?.name || '第三名2', w:null},
-            {t1: t.C1, t2: t.A2, w:null}
+            {t1: t.A1, t2: thirds[0]?.name || '第三名1', s1:'', s2:'', w:''},
+            {t1: t.B2, t2: t.C2, s1:'', s2:'', w:''},
+            {t1: t.B1, t2: thirds[1]?.name || '第三名2', s1:'', s2:'', w:''},
+            {t1: t.C1, t2: t.A2, s1:'', s2:'', w:''}
         ];
         renderYouthBracket();
         alert('青年組八強生成成功！');
@@ -571,53 +574,172 @@
         let st = calculateStandings(state.kidsGroups, state.kidsMatches);
         if(!st['D'] || !st['D'][0]) { alert('請先完成小組賽'); return; }
         kidsBracketState.sf = [
-            {t1: st['D'][0]?.name||'', t2: st['E'][1]?.name||'', w:null},
-            {t1: st['E'][0]?.name||'', t2: st['D'][1]?.name||'', w:null}
+            {t1: st['D'][0]?.name||'', t2: st['E'][1]?.name||'', s1:'', s2:'', w:''},
+            {t1: st['E'][0]?.name||'', t2: st['D'][1]?.name||'', s1:'', s2:'', w:''}
         ];
         renderKidsBracket();
         alert('兒童組四強生成成功！');
     }
 
-    function setYouthWinner(round, idx, name) {
-        if(!isAdmin || !name) return;
-        if(round==='qf') {
-            youthBracketState.qf[idx].w = name;
-            if(idx<2) youthBracketState.sf[0][idx===0?'t1':'t2'] = name;
-            else youthBracketState.sf[1][idx===2?'t1':'t2'] = name;
-        } else if(round==='sf') {
-            youthBracketState.sf[idx].w = name;
-            if(idx===0) youthBracketState.final.t1 = name; else youthBracketState.final.t2 = name;
-            let los = youthBracketState.sf[idx].t1===name ? youthBracketState.sf[idx].t2 : youthBracketState.sf[idx].t1;
-            if(idx===0) youthBracketState.third.t1 = los; else youthBracketState.third.t2 = los;
-        } else if(round==='final') youthBracketState.final.w = name;
-        else if(round==='third') youthBracketState.third.w = name;
-        renderYouthBracket();
+    // 淘汰賽比分輸入與自動判定勝者
+    function updateBracketMatch(category, round, idx, s1Val, s2Val) {
+        if(!isAdmin) return;
+        let bracket = category === 'youth' ? youthBracketState : kidsBracketState;
+        let m = round === 'qf' ? bracket.qf[idx] : round === 'sf' ? bracket.sf[idx] : round === 'final' ? bracket.final : bracket.third;
+        
+        m.s1 = s1Val;
+        m.s2 = s2Val;
+
+        if(s1Val !== '' && s2Val !== '') {
+            let v1 = parseInt(s1Val);
+            let v2 = parseInt(s2Val);
+            if(v1 > v2) {
+                m.w = m.t1;
+                propagateWinner(category, round, idx, m.t1, m.t2);
+            } else if(v2 > v1) {
+                m.w = m.t2;
+                propagateWinner(category, round, idx, m.t2, m.t1);
+            } else {
+                m.w = '';
+            }
+        } else {
+            m.w = '';
+        }
+
+        if(category === 'youth') renderYouthBracket();
+        else renderKidsBracket();
     }
 
-    function setKidsWinner(round, idx, name) {
-        if(!isAdmin || !name) return;
-        if(round==='sf') {
-            kidsBracketState.sf[idx].w = name;
-            if(idx===0) kidsBracketState.final.t1 = name; else kidsBracketState.final.t2 = name;
-            let los = kidsBracketState.sf[idx].t1===name ? kidsBracketState.sf[idx].t2 : kidsBracketState.sf[idx].t1;
-            if(idx===0) kidsBracketState.third.t1 = los; else kidsBracketState.third.t2 = los;
-        } else if(round==='final') kidsBracketState.final.w = name;
-        else if(round==='third') kidsBracketState.third.w = name;
-        renderKidsBracket();
+    function propagateWinner(category, round, idx, winner, loser) {
+        let bracket = category === 'youth' ? youthBracketState : kidsBracketState;
+        if(round === 'qf') {
+            if(idx < 2) {
+                bracket.sf[0][idx === 0 ? 't1' : 't2'] = winner;
+            } else {
+                bracket.sf[1][idx === 2 ? 't1' : 't2'] = winner;
+            }
+        } else if(round === 'sf') {
+            if(category === 'youth') {
+                if(idx === 0) {
+                    bracket.final.t1 = winner;
+                    bracket.third.t1 = loser;
+                } else {
+                    bracket.final.t2 = winner;
+                    bracket.third.t2 = loser;
+                }
+            } else {
+                if(idx === 0) {
+                    bracket.final.t1 = winner;
+                    bracket.third.t1 = loser;
+                } else {
+                    bracket.final.t2 = winner;
+                    bracket.third.t2 = loser;
+                }
+            }
+        }
     }
 
     function renderYouthBracket() {
-        let rc = isAdmin ? '' : 'readonly';
-        let html = `<div class="bracket-round"><h3>八強</h3>` + youthBracketState.qf.map((m,i)=>`<div class="bracket-match"><div class="bracket-team ${rc} ${youthBracketState.qf[i].w===m.t1?'winner':''}" onclick="setYouthWinner('qf',${i},'${m.t1}')">${m.t1||'等待'}</div><div style="text-align:center;font-size:12px;color:var(--text-muted);margin:2px 0;">VS</div><div class="bracket-team ${rc} ${youthBracketState.qf[i].w===m.t2?'winner':''}" onclick="setYouthWinner('qf',${i},'${m.t2}')">${m.t2||'等待'}</div></div>`).join('') + `</div>`;
-        html += `<div class="bracket-round"><h3>四強</h3>` + youthBracketState.sf.map((m,i)=>`<div class="bracket-match" style="margin:40px 0;"><div class="bracket-team ${rc} ${youthBracketState.sf[i].w===m.t1?'winner':''}" onclick="setYouthWinner('sf',${i},'${m.t1}')">${m.t1||'等待'}</div><div style="text-align:center;font-size:12px;color:var(--text-muted);margin:2px 0;">VS</div><div class="bracket-team ${rc} ${youthBracketState.sf[i].w===m.t2?'winner':''}" onclick="setYouthWinner('sf',${i},'${m.t2}')">${m.t2||'等待'}</div></div>`).join('') + `</div>`;
-        html += `<div class="bracket-round"><h3>決賽</h3><div class="bracket-match"><h4 style="margin:0 0 4px;color:var(--primary-light);">冠軍戰</h4><div class="bracket-team ${rc} ${youthBracketState.final.w===youthBracketState.final.t1?'winner':''}" onclick="setYouthWinner('final',0,'${youthBracketState.final.t1}')">${youthBracketState.final.t1||'等待'}</div><div style="text-align:center;font-size:12px;color:var(--text-muted);margin:2px 0;">VS</div><div class="bracket-team ${rc} ${youthBracketState.final.w===youthBracketState.final.t2?'winner':''}" onclick="setYouthWinner('final',0,'${youthBracketState.final.t2}')">${youthBracketState.final.t2||'等待'}</div></div><div class="bracket-match"><h4 style="margin:0 0 4px;color:var(--text-muted);">季軍戰</h4><div class="bracket-team ${rc} ${youthBracketState.third.w===youthBracketState.third.t1?'winner':''}" onclick="setYouthWinner('third',0,'${youthBracketState.third.t1}')">${youthBracketState.third.t1||'等待'}</div><div style="text-align:center;font-size:12px;color:var(--text-muted);margin:2px 0;">VS</div><div class="bracket-team ${rc} ${youthBracketState.third.w===youthBracketState.third.t2?'winner':''}" onclick="setYouthWinner('third',0,'${youthBracketState.third.t2}')">${youthBracketState.third.t2||'等待'}</div></div></div>`;
+        let dis = isAdmin ? '' : 'disabled';
+        let html = `<div class="bracket-round"><h3>八強</h3>` + youthBracketState.qf.map((m,i)=>{
+            return `<div class="bracket-match">
+                <div class="bracket-team-box ${youthBracketState.qf[i].w===m.t1 && m.t1?'winner':''}">
+                    <span class="bracket-team-name">${m.t1||'等待'}</span>
+                    <input type="text" class="bracket-score-input" ${dis} value="${m.s1}" placeholder="比分" oninput="updateBracketMatch('youth','qf',${i},this.value,'${m.s2}')">
+                </div>
+                <div style="text-align:center;font-size:12px;color:var(--text-muted);margin:2px 0;">VS</div>
+                <div class="bracket-team-box ${youthBracketState.qf[i].w===m.t2 && m.t2?'winner':''}">
+                    <span class="bracket-team-name">${m.t2||'等待'}</span>
+                    <input type="text" class="bracket-score-input" ${dis} value="${m.s2}" placeholder="比分" oninput="updateBracketMatch('youth','qf',${i},'${m.s1}',this.value)">
+                </div>
+            </div>`;
+        }).join('') + `</div>`;
+
+        html += `<div class="bracket-round"><h3>四強</h3>` + youthBracketState.sf.map((m,i)=>{
+            return `<div class="bracket-match" style="margin:40px 0;">
+                <div class="bracket-team-box ${youthBracketState.sf[i].w===m.t1 && m.t1?'winner':''}">
+                    <span class="bracket-team-name">${m.t1||'等待'}</span>
+                    <input type="text" class="bracket-score-input" ${dis} value="${m.s1}" placeholder="比分" oninput="updateBracketMatch('youth','sf',${i},this.value,'${m.s2}')">
+                </div>
+                <div style="text-align:center;font-size:12px;color:var(--text-muted);margin:2px 0;">VS</div>
+                <div class="bracket-team-box ${youthBracketState.sf[i].w===m.t2 && m.t2?'winner':''}">
+                    <span class="bracket-team-name">${m.t2||'等待'}</span>
+                    <input type="text" class="bracket-score-input" ${dis} value="${m.s2}" placeholder="比分" oninput="updateBracketMatch('youth','sf',${i},'${m.s1}',this.value)">
+                </div>
+            </div>`;
+        }).join('') + `</div>`;
+
+        html += `<div class="bracket-round"><h3>決賽</h3>
+            <div class="bracket-match">
+                <h4 style="margin:0 0 4px;color:var(--primary-light);">冠軍戰</h4>
+                <div class="bracket-team-box ${youthBracketState.final.w===youthBracketState.final.t1 && youthBracketState.final.t1?'winner':''}">
+                    <span class="bracket-team-name">${youthBracketState.final.t1||'等待'}</span>
+                    <input type="text" class="bracket-score-input" ${dis} value="${youthBracketState.final.s1}" placeholder="比分" oninput="updateBracketMatch('youth','final',0,this.value,'${youthBracketState.final.s2}')">
+                </div>
+                <div style="text-align:center;font-size:12px;color:var(--text-muted);margin:2px 0;">VS</div>
+                <div class="bracket-team-box ${youthBracketState.final.w===youthBracketState.final.t2 && youthBracketState.final.t2?'winner':''}">
+                    <span class="bracket-team-name">${youthBracketState.final.t2||'等待'}</span>
+                    <input type="text" class="bracket-score-input" ${dis} value="${youthBracketState.final.s2}" placeholder="比分" oninput="updateBracketMatch('youth','final',0,'${youthBracketState.final.s1}',this.value)">
+                </div>
+            </div>
+            <div class="bracket-match">
+                <h4 style="margin:0 0 4px;color:var(--text-muted);">季軍戰</h4>
+                <div class="bracket-team-box ${youthBracketState.third.w===youthBracketState.third.t1 && youthBracketState.third.t1?'winner':''}">
+                    <span class="bracket-team-name">${youthBracketState.third.t1||'等待'}</span>
+                    <input type="text" class="bracket-score-input" ${dis} value="${youthBracketState.third.s1}" placeholder="比分" oninput="updateBracketMatch('youth','third',0,this.value,'${youthBracketState.third.s2}')">
+                </div>
+                <div style="text-align:center;font-size:12px;color:var(--text-muted);margin:2px 0;">VS</div>
+                <div class="bracket-team-box ${youthBracketState.third.w===youthBracketState.third.t2 && youthBracketState.third.t2?'winner':''}">
+                    <span class="bracket-team-name">${youthBracketState.third.t2||'等待'}</span>
+                    <input type="text" class="bracket-score-input" ${dis} value="${youthBracketState.third.s2}" placeholder="比分" oninput="updateBracketMatch('youth','third',0,'${youthBracketState.third.s1}',this.value)">
+                </div>
+            </div>
+        </div>`;
         document.getElementById('youthBracketContainer').innerHTML = html;
     }
 
     function renderKidsBracket() {
-        let rc = isAdmin ? '' : 'readonly';
-        let html = `<div class="bracket-round"><h3>四強</h3>` + kidsBracketState.sf.map((m,i)=>`<div class="bracket-match" style="margin:20px 0;"><div class="bracket-team ${rc} ${kidsBracketState.sf[i].w===m.t1?'winner':''}" onclick="setKidsWinner('sf',${i},'${m.t1}')">${m.t1||'等待'}</div><div style="text-align:center;font-size:12px;color:var(--text-muted);margin:2px 0;">VS</div><div class="bracket-team ${rc} ${kidsBracketState.sf[i].w===m.t2?'winner':''}" onclick="setKidsWinner('sf',${i},'${m.t2}')">${m.t2||'等待'}</div></div>`).join('') + `</div>`;
-        html += `<div class="bracket-round"><h3>決賽</h3><div class="bracket-match"><h4 style="margin:0 0 4px;color:var(--primary-light);">冠軍戰</h4><div class="bracket-team ${rc} ${kidsBracketState.final.w===kidsBracketState.final.t1?'winner':''}" onclick="setYouthWinner('final',0,'${kidsBracketState.final.t1}')">${kidsBracketState.final.t1||'等待'}</div><div style="text-align:center;font-size:12px;color:var(--text-muted);margin:2px 0;">VS</div><div class="bracket-team ${rc} ${kidsBracketState.final.w===kidsBracketState.final.t2?'winner':''}" onclick="setYouthWinner('final',0,'${kidsBracketState.final.t2}')">${kidsBracketState.final.t2||'等待'}</div></div><div class="bracket-match"><h4 style="margin:0 0 4px;color:var(--text-muted);">季軍戰</h4><div class="bracket-team ${rc} ${kidsBracketState.third.w===kidsBracketState.third.t1?'winner':''}" onclick="setYouthWinner('third',0,'${kidsBracketState.third.t1}')">${kidsBracketState.third.t1||'等待'}</div><div style="text-align:center;font-size:12px;color:var(--text-muted);margin:2px 0;">VS</div><div class="bracket-team ${rc} ${kidsBracketState.third.w===kidsBracketState.third.t2?'winner':''}" onclick="setYouthWinner('third',0,'${kidsBracketState.third.t2}')">${kidsBracketState.third.t2||'等待'}</div></div></div>`;
+        let dis = isAdmin ? '' : 'disabled';
+        let html = `<div class="bracket-round"><h3>四強</h3>` + kidsBracketState.sf.map((m,i)=>{
+            return `<div class="bracket-match" style="margin:20px 0;">
+                <div class="bracket-team-box ${kidsBracketState.sf[i].w===m.t1 && m.t1?'winner':''}">
+                    <span class="bracket-team-name">${m.t1||'等待'}</span>
+                    <input type="text" class="bracket-score-input" ${dis} value="${m.s1}" placeholder="比分" oninput="updateBracketMatch('kids','sf',${i},this.value,'${m.s2}')">
+                </div>
+                <div style="text-align:center;font-size:12px;color:var(--text-muted);margin:2px 0;">VS</div>
+                <div class="bracket-team-box ${kidsBracketState.sf[i].w===m.t2 && m.t2?'winner':''}">
+                    <span class="bracket-team-name">${m.t2||'等待'}</span>
+                    <input type="text" class="bracket-score-input" ${dis} value="${m.s2}" placeholder="比分" oninput="updateBracketMatch('kids','sf',${i},'${m.s1}',this.value)">
+                </div>
+            </div>`;
+        }).join('') + `</div>`;
+
+        html += `<div class="bracket-round"><h3>決賽</h3>
+            <div class="bracket-match">
+                <h4 style="margin:0 0 4px;color:var(--primary-light);">冠軍戰</h4>
+                <div class="bracket-team-box ${kidsBracketState.final.w===kidsBracketState.final.t1 && kidsBracketState.final.t1?'winner':''}">
+                    <span class="bracket-team-name">${kidsBracketState.final.t1||'等待'}</span>
+                    <input type="text" class="bracket-score-input" ${dis} value="${kidsBracketState.final.s1}" placeholder="比分" oninput="updateBracketMatch('kids','final',0,this.value,'${kidsBracketState.final.s2}')">
+                </div>
+                <div style="text-align:center;font-size:12px;color:var(--text-muted);margin:2px 0;">VS</div>
+                <div class="bracket-team-box ${kidsBracketState.final.w===kidsBracketState.final.t2 && kidsBracketState.final.t2?'winner':''}">
+                    <span class="bracket-team-name">${kidsBracketState.final.t2||'等待'}</span>
+                    <input type="text" class="bracket-score-input" ${dis} value="${kidsBracketState.final.s2}" placeholder="比分" oninput="updateBracketMatch('kids','final',0,'${kidsBracketState.final.s1}',this.value)">
+                </div>
+            </div>
+            <div class="bracket-match">
+                <h4 style="margin:0 0 4px;color:var(--text-muted);">季軍戰</h4>
+                <div class="bracket-team-box ${kidsBracketState.third.w===kidsBracketState.third.t1 && kidsBracketState.third.t1?'winner':''}">
+                    <span class="bracket-team-name">${kidsBracketState.third.t1||'等待'}</span>
+                    <input type="text" class="bracket-score-input" ${dis} value="${kidsBracketState.third.s1}" placeholder="比分" oninput="updateBracketMatch('kids','third',0,this.value,'${kidsBracketState.third.s2}')">
+                </div>
+                <div style="text-align:center;font-size:12px;color:var(--text-muted);margin:2px 0;">VS</div>
+                <div class="bracket-team-box ${kidsBracketState.third.w===kidsBracketState.third.t2 && kidsBracketState.third.t2?'winner':''}">
+                    <span class="bracket-team-name">${kidsBracketState.third.t2||'等待'}</span>
+                    <input type="text" class="bracket-score-input" ${dis} value="${kidsBracketState.third.s2}" placeholder="比分" oninput="updateBracketMatch('kids','third',0,'${kidsBracketState.third.s1}',this.value)">
+                </div>
+            </div>
+        </div>`;
         document.getElementById('kidsBracketContainer').innerHTML = html;
     }
 </script>
