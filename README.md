@@ -159,11 +159,9 @@
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
         .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
         
-        .match-card { background: #0f172a; border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 14px; }
-        .match-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-weight: 600; color: #93c5fd; }
-        .match-teams-line { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-size: 15px; }
-        .sets-container { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
-        .set-box { background: #1e293b; border: 1px solid var(--border); border-radius: 6px; padding: 6px; display: flex; align-items: center; gap: 4px; font-size: 13px; }
+        .match-row { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 12px; padding: 12px; background-color: #0f172a; border-radius: 10px; border: 1px solid var(--border); }
+        .team-name { width: 140px; text-align: right; font-weight: 600; color: #e2e8f0; }
+        .team-name.right { text-align: left; }
         
         .bracket-container { display: flex; justify-content: space-between; gap: 16px; overflow-x: auto; padding: 10px 0; }
         .bracket-round { display: flex; flex-direction: column; justify-content: space-around; flex: 1; min-width: 220px; }
@@ -374,16 +372,7 @@
         let mId = 1;
         for (let i = 0; i < teams.length; i++) {
             for (let j = i + 1; j < teams.length; j++) {
-                matchObj[groupId].push({ 
-                    id: `${groupId}-${mId++}`, 
-                    t1: teams[i], 
-                    t2: teams[j], 
-                    sets: [
-                        {t1Score: '', t2Score: ''},
-                        {t1Score: '', t2Score: ''},
-                        {t1Score: '', t2Score: ''}
-                    ] 
-                });
+                matchObj[groupId].push({ id: `${groupId}-${mId++}`, t1: teams[i], t2: teams[j], s1: "", s2: "" });
             }
         }
     }
@@ -440,13 +429,13 @@
         document.getElementById('kidsGroupsResult').innerHTML = html || '尚未進行抽籤';
     }
 
-    function updateSetScore(type, groupId, matchId, setIdx, teamSide, val) {
+    function updateScore(type, groupId, matchId, tIndex, val) {
         if(!isAdmin) return;
         let matches = type === 'youth' ? state.youthMatches[groupId] : state.kidsMatches[groupId];
         let m = matches.find(x => x.id === matchId);
         if(m) {
-            if(teamSide === 1) m.sets[setIdx].t1Score = val;
-            if(teamSide === 2) m.sets[setIdx].t2Score = val;
+            if(tIndex === 1) m.s1 = val;
+            if(tIndex === 2) m.s2 = val;
         }
         renderGroupView(type);
     }
@@ -454,51 +443,31 @@
     function calculateStandings(groups, matches) {
         let st = {};
         for(let g in groups) {
-            st[g] = groups[g].map(name => ({ name, played: 0, winGames: 0, loseGames: 0, totalScore: 0, pts: 0 }));
+            st[g] = groups[g].map(name => ({ name, played: 0, winGames: 0, loseGames: 0, pts: 0 }));
             if(!matches[g]) continue;
             matches[g].forEach(m => {
-                let t1Obj = st[g].find(x => x.name === m.t1);
-                let t2Obj = st[g].find(x => x.name === m.t2);
-                if(!t1Obj || !t2Obj) return;
+                if(m.s1 !== "" && m.s2 !== "") {
+                    let s1 = parseInt(m.s1);
+                    let s2 = parseInt(m.s2);
+                    let t1 = st[g].find(x => x.name === m.t1);
+                    let t2 = st[g].find(x => x.name === m.t2);
+                    if(t1 && t2) {
+                        t1.played++; t2.played++;
+                        t1.winGames += s1;
+                        t1.loseGames += s2;
+                        t2.winGames += s2;
+                        t2.loseGames += s1;
 
-                let t1SetsWon = 0;
-                let t2SetsWon = 0;
-                let hasPlayed = false;
-
-                m.sets.forEach(set => {
-                    if(set.t1Score !== "" && set.t2Score !== "") {
-                        hasPlayed = true;
-                        let s1 = parseInt(set.t1Score);
-                        let s2 = parseInt(set.t2Score);
-                        t1Obj.totalScore += s1;
-                        t2Obj.totalScore += s2;
-
-                        if(s1 >= 4 && s1 > s2) {
-                            t1SetsWon++;
-                        } else if(s2 >= 4 && s2 > s1) {
-                            t2SetsWon++;
-                        }
+                        // 原始邏輯：贏幾盤就算幾分 (3盤制)
+                        t1.pts += s1;
+                        t2.pts += s2;
                     }
-                });
-
-                if(hasPlayed) {
-                    t1Obj.played++;
-                    t2Obj.played++;
-                    t1Obj.winGames += t1SetsWon;
-                    t1Obj.loseGames += t2SetsWon;
-                    t2Obj.winGames += t2SetsWon;
-                    t2Obj.loseGames += t1SetsWon;
-
-                    // 積分計算：贏得一局得 1 分（即贏幾局就加幾分）
-                    t1Obj.pts += t1SetsWon;
-                    t2Obj.pts += t2SetsWon;
                 }
             });
-
             st[g].sort((a, b) => {
                 if (b.pts !== a.pts) return b.pts - a.pts;
                 if (b.winGames !== a.winGames) return b.winGames - a.winGames;
-                return b.totalScore - a.totalScore;
+                return (b.winGames - b.loseGames) - (a.winGames - a.loseGames);
             });
         }
         return st;
@@ -515,39 +484,21 @@
         for(let g in groups) {
             if(groups[g].length === 0) continue;
             html += `<h3>組別 ${g}</h3><div class="grid-2">`;
-            html += `<div><h4>積分榜</h4><table><tr><th>名</th><th>隊伍</th><th>賽</th><th>贏局</th><th>輸局</th><th>賽分</th><th>積分</th></tr>`;
+            html += `<div><h4>積分榜</h4><table><tr><th>名</th><th>隊伍</th><th>賽</th><th>贏局</th><th>輸局</th><th>得失差</th><th>積分</th></tr>`;
             st[g].forEach((t, i) => {
-                html += `<tr><td>${i+1}</td><td><b>${t.name}</b></td><td>${t.played}</td><td style="color:#34d399; font-weight:600;">${t.winGames}</td><td style="color:#f43f5e;">${t.loseGames}</td><td>${t.totalScore}</td><td><b>${t.pts}</b></td></tr>`;
+                let diff = t.winGames - t.loseGames;
+                let diffStr = diff > 0 ? `+${diff}` : diff;
+                html += `<tr><td>${i+1}</td><td><b>${t.name}</b></td><td>${t.played}</td><td style="color:#34d399; font-weight:600;">${t.winGames}</td><td style="color:#f43f5e;">${t.loseGames}</td><td>${diffStr}</td><td><b>${t.pts}</b></td></tr>`;
             });
-            html += `</table></div><div><h4>對賽比分填寫 (3盤2勝)</h4>`;
-            
+            html += `</table></div><div><h4>對賽比分填寫 (3盤贏幾盤填幾盤)</h4>`;
             matches[g].forEach(m => {
                 let dis = isAdmin ? '' : 'disabled';
-                html += `<div class="match-card">
-                    <div class="match-header"><span>${m.id} 組內對賽</span></div>
-                    <div class="match-teams-line">
-                        <span style="font-weight:600; width:100px; text-align:right;">${m.t1}</span>
-                        <span style="color:var(--text-muted);">vs</span>
-                        <span style="font-weight:600; width:100px; text-align:left;">${m.t2}</span>
-                    </div>
-                    <div class="sets-container">`;
-                
                 let opts = ['','0','1','2','3'];
-                m.sets.forEach((set, sIdx) => {
-                    let opt1 = opts.map(o => `<option value="${o}" ${set.t1Score===o?'selected':''}>${o===''?'-':o}</option>`).join('');
-                    let opt2 = opts.map(o => `<option value="${o}" ${set.t2Score===o?'selected':''}>${o===''?'-':o}</option>`).join('');
+                let optHtml1 = opts.map(o => `<option value="${o}" ${m.s1===o?'selected':''}>${o===''?'-':o}</option>`).join('');
+                let optHtml2 = opts.map(o => `<option value="${o}" ${m.s2===o?'selected':''}>${o===''?'-':o}</option>`).join('');
 
-                    html += `<div class="set-box">
-                        <span>Set ${sIdx+1}:</span>
-                        <select ${dis} style="width:50px; padding:2px;" onchange="updateSetScore('${type}','${g}','${m.id}',${sIdx},1,this.value)">${opt1}</select>
-                        <span>:</span>
-                        <select ${dis} style="width:50px; padding:2px;" onchange="updateSetScore('${type}','${g}','${m.id}',${sIdx},2,this.value)">${opt2}</select>
-                    </div>`;
-                });
-
-                html += `</div></div>`;
+                html += `<div class="match-row"><span class="team-name">${m.t1}</span><select ${dis} onchange="updateScore('${type}','${g}','${m.id}',1,this.value)">${optHtml1}</select><span>:</span><select ${dis} onchange="updateScore('${type}','${g}','${m.id}',2,this.value)">${optHtml2}</select><span class="team-name right">${m.t2}</span></div>`;
             });
-
             html += `</div></div><hr style="border:0; border-top:1px solid var(--border); margin: 20px 0;">`;
         }
         container.innerHTML = html;
