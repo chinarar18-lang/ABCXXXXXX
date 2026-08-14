@@ -3,44 +3,178 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🌀 陀螺比賽雲端管理系統</title>
+    <title>🌀 陀螺比賽雲端實時管理系統</title>
+    <!-- 引入高顏值中文字體：丸編體/少女風格字體 -->
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=M+PLUS+Rounded+1c:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #3b82f6; --primary-dark: #1d4ed8; --bg-color: #f8fafc; --card-bg: #ffffff; --text-main: #0f172a; --text-muted: #64748b; --border: #e2e8f0; --success: #10b981; --success-bg: #ecfdf5; --radius: 12px; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 20px; }
+        :root { 
+            /* 深藍色主題調色盤 */
+            --primary: #3b82f6; 
+            --primary-dark: #1e3a8a; 
+            --primary-light: #60a5fa;
+            --accent: #f43f5e;
+            --bg-color: #0f172a; 
+            --card-bg: #1e293b; 
+            --text-main: #f8fafc; 
+            --text-muted: #94a3b8; 
+            --border: #334155; 
+            --success: #10b981; 
+            --success-bg: #064e3b; 
+            --radius: 16px; 
+        }
+        
+        body { 
+            font-family: 'M PLUS Rounded 1c', 'ZCOOL KuaiLe', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            background-color: var(--bg-color); 
+            color: var(--text-main); 
+            margin: 0; 
+            padding: 20px; 
+            letter-spacing: 0.5px;
+        }
+
         .container { max-width: 1200px; margin: 0 auto; }
-        .header-box { display: flex; justify-content: space-between; align-items: center; background: var(--card-bg); padding: 20px 24px; border-radius: var(--radius); box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        h1 { margin: 0; font-size: 24px; color: var(--primary-dark); }
-        .admin-bar { background: var(--card-bg); padding: 15px 24px; border-radius: var(--radius); box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; }
-        .mode-badge { padding: 6px 12px; border-radius: 20px; font-weight: 600; font-size: 13px; }
-        .mode-view { background-color: #f1f5f9; color: var(--text-muted); }
-        .mode-edit { background-color: var(--success-bg); color: var(--success); }
-        .card { background: var(--card-bg); border-radius: var(--radius); padding: 24px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .tab-buttons { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
-        .tab-btn { background-color: #e2e8f0; color: var(--text-muted); border: none; padding: 10px 18px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.2s; }
-        .tab-btn.active { background-color: var(--primary); color: white; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
+        
+        .header-box { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            background: linear-gradient(135deg, #1e3a8a, #1e293b); 
+            padding: 24px 32px; 
+            border-radius: var(--radius); 
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3); 
+            margin-bottom: 24px; 
+            border: 1px solid var(--border);
+        }
+        
+        h1, h2, h3, h4 { 
+            font-family: 'ZCOOL KuaiLe', 'M PLUS Rounded 1c', sans-serif;
+            letter-spacing: 1px;
+        }
+
+        h1 { margin: 0; font-size: 28px; color: #93c5fd; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+        
+        .admin-bar { 
+            background: var(--card-bg); 
+            padding: 16px 24px; 
+            border-radius: var(--radius); 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2); 
+            margin-bottom: 24px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            border: 1px solid var(--border);
+        }
+        
+        .mode-badge { padding: 6px 14px; border-radius: 20px; font-weight: 600; font-size: 13px; }
+        .mode-view { background-color: #334155; color: var(--text-muted); }
+        .mode-edit { background-color: var(--success-bg); color: #34d399; border: 1px solid var(--success); }
+        
+        .card { 
+            background: var(--card-bg); 
+            border-radius: var(--radius); 
+            padding: 28px; 
+            margin-bottom: 24px; 
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2); 
+            border: 1px solid var(--border);
+        }
+        
+        .tab-buttons { display: flex; gap: 10px; margin-bottom: 24px; flex-wrap: wrap; }
+        
+        .tab-btn { 
+            background-color: #334155; 
+            color: var(--text-muted); 
+            border: none; 
+            padding: 12px 20px; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            font-size: 14px; 
+            font-weight: 600; 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            font-family: inherit;
+        }
+        
+        .tab-btn.active { 
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white; 
+            box-shadow: 0 6px 15px rgba(59, 130, 246, 0.4); 
+            transform: translateY(-2px);
+        }
+        
         .section { display: none; }
-        .section.active { display: block; }
-        button { background-color: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: background 0.2s; }
-        button:hover { background-color: var(--primary-dark); }
-        .btn-success { background-color: var(--success); }
-        input[type="number"] { width: 50px; padding: 6px; border: 1px solid var(--border); border-radius: 6px; text-align: center; font-size: 15px; }
-        input:disabled, textarea:disabled { background-color: #f8fafc; color: var(--text-muted); cursor: not-allowed; }
-        textarea { width: 100%; height: 120px; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; box-sizing: border-box; resize: vertical; }
-        table { width: 100%; border-collapse: collapse; margin-top: 12px; margin-bottom: 20px; border-radius: 8px; overflow: hidden; }
-        th, td { border: 1px solid var(--border); padding: 10px 14px; text-align: center; font-size: 14px; }
-        th { background-color: #f8fafc; color: var(--text-muted); font-weight: 600; }
+        .section.active { display: block; animation: fadeIn 0.4s ease; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        button { 
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8); 
+            color: white; 
+            border: none; 
+            padding: 10px 22px; 
+            border-radius: 10px; 
+            cursor: pointer; 
+            font-size: 14px; 
+            font-weight: 600; 
+            transition: all 0.2s; 
+            font-family: inherit;
+            box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
+        }
+        button:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        
+        .btn-success { background: linear-gradient(135deg, #10b981, #047857); box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3); }
+        
+        input[type="number"], input[type="password"] { 
+            background-color: #0f172a;
+            color: white;
+            width: 55px; 
+            padding: 8px; 
+            border: 1px solid var(--border); 
+            border-radius: 8px; 
+            text-align: center; 
+            font-size: 15px; 
+            font-family: inherit;
+        }
+        
+        input:disabled, textarea:disabled { background-color: #0b1120; color: var(--text-muted); cursor: not-allowed; }
+        
+        textarea { 
+            width: 100%; 
+            height: 120px; 
+            padding: 14px; 
+            background-color: #0f172a;
+            color: white;
+            border: 1px solid var(--border); 
+            border-radius: 10px; 
+            font-size: 14px; 
+            box-sizing: border-box; 
+            resize: vertical; 
+            font-family: inherit;
+        }
+        
+        table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 12px; margin-bottom: 20px; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+        
+        th, td { border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); padding: 12px 14px; text-align: center; font-size: 14px; }
+        th:last-child, td:last-child { border-right: none; }
+        th { background-color: #0f172a; color: #93c5fd; font-weight: 600; }
+        tr:hover td { background-color: rgba(59, 130, 246, 0.05); }
+        
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
         .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
-        .match-row { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 12px; padding: 12px; background-color: #f8fafc; border-radius: 8px; border: 1px solid var(--border); }
-        .team-name { width: 140px; text-align: right; font-weight: 600; }
+        
+        .match-row { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 12px; padding: 12px; background-color: #0f172a; border-radius: 10px; border: 1px solid var(--border); }
+        .team-name { width: 140px; text-align: right; font-weight: 600; color: #e2e8f0; }
         .team-name.right { text-align: left; }
+        
         .bracket-container { display: flex; justify-content: space-between; gap: 16px; overflow-x: auto; padding: 10px 0; }
         .bracket-round { display: flex; flex-direction: column; justify-content: space-around; flex: 1; min-width: 200px; }
-        .bracket-match { background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin: 8px 0; }
-        .bracket-team { padding: 10px; margin: 4px 0; background: white; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; text-align: center; font-weight: 600; transition: all 0.2s; }
+        .bracket-match { background: #0f172a; border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin: 8px 0; }
+        .bracket-team { padding: 10px; margin: 4px 0; background: #1e293b; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; text-align: center; font-weight: 600; transition: all 0.2s; color: #f8fafc; }
         .bracket-team.readonly { cursor: default; }
-        .bracket-team:not(.readonly):hover { border-color: var(--primary); background-color: #eff6ff; }
-        .bracket-team.winner { background-color: var(--success-bg); border-color: var(--success); color: var(--success); }
+        .bracket-team:not(.readonly):hover { border-color: var(--primary); background-color: #1e3a8a; }
+        .bracket-team.winner { background-color: rgba(16, 185, 129, 0.2); border-color: var(--success); color: #34d399; }
+        
         @media (max-width: 768px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
     </style>
 </head>
@@ -57,13 +191,13 @@
             <span id="modeStatus" class="mode-badge mode-view">🔍 檢視模式 (唯讀)</span>
         </div>
         <div id="authArea">
-            <input type="password" id="adminPassword" placeholder="管理員密碼" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; width: 130px;">
+            <input type="password" id="adminPassword" placeholder="管理員密碼" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; width: 130px;">
             <button onclick="tryUnlock()">解鎖編輯</button>
         </div>
         <div id="editArea" style="display:none;">
-            <span style="color: var(--success); font-weight: 600; margin-right: 12px;">✨ 編輯中 (持續有效)</span>
+            <span style="color: #34d399; font-weight: 600; margin-right: 12px;">✨ 編輯中 (持續有效)</span>
             <button class="btn-success" onclick="syncToCloud()">☁️ 同步所有修改</button>
-            <button onclick="lockAdmin()" style="background-color: var(--text-muted);">鎖定</button>
+            <button onclick="lockAdmin()" style="background-color: #475569;">鎖定</button>
         </div>
     </div>
 
@@ -219,7 +353,7 @@
         renderGroupView('kids');
         renderYouthBracket();
         renderKidsBracket();
-        generateSchedule(); // 自動渲染盤次
+        generateSchedule();
     }
 
     function switchTab(tabId) {
@@ -260,7 +394,7 @@
         gNames.forEach(g => generateRoundRobin(state.youthGroups[g], g, state.youthMatches));
         renderYouthGroupsResult();
         renderGroupView('youth');
-        generateSchedule(); // 自動生成盤次
+        generateSchedule();
         alert('青年組抽籤完成！已自動分配小組賽盤次。');
     }
 
@@ -286,7 +420,7 @@
         gNames.forEach(g => generateRoundRobin(state.kidsGroups[g], g, state.kidsMatches));
         renderKidsGroupsResult();
         renderGroupView('kids');
-        generateSchedule(); // 自動生成盤次
+        generateSchedule();
         alert('兒童組抽籤完成！已自動分配小組賽盤次。');
     }
 
@@ -313,7 +447,7 @@
     function calculateStandings(groups, matches) {
         let st = {};
         for(let g in groups) {
-            st[g] = groups[g].map(name => ({ name, played: 0, w3: 0, w2: 0, l1: 0, l0: 0, pts: 0 }));
+            st[g] = groups[g].map(name => ({ name, played: 0, winGames: 0, loseGames: 0, pts: 0 }));
             if(!matches[g]) continue;
             matches[g].forEach(m => {
                 if(m.s1 !== null && m.s2 !== null) {
@@ -321,14 +455,23 @@
                     let t2 = st[g].find(x => x.name === m.t2);
                     if(t1 && t2) {
                         t1.played++; t2.played++;
-                        if(m.s1 === 3 && m.s2 === 0) { t1.w3++; t1.pts += 3; t2.l0++; }
-                        else if(m.s1 === 2 && m.s2 === 1) { t1.w2++; t1.pts += 2; t2.l1++; t2.pts += 1; }
-                        else if(m.s1 === 1 && m.s2 === 2) { t2.w2++; t2.pts += 2; t1.l1++; t1.pts += 1; }
-                        else if(m.s1 === 0 && m.s2 === 3) { t2.w3++; t2.pts += 3; t1.l0++; }
+                        t1.winGames += m.s1;
+                        t1.loseGames += m.s2;
+                        t2.winGames += m.s2;
+                        t2.loseGames += m.s1;
+
+                        if(m.s1 === 3 && m.s2 === 0) { t1.pts += 3; }
+                        else if(m.s1 === 2 && m.s2 === 1) { t1.pts += 2; t2.pts += 1; }
+                        else if(m.s1 === 1 && m.s2 === 2) { t2.pts += 2; t1.pts += 1; }
+                        else if(m.s1 === 0 && m.s2 === 3) { t2.pts += 3; }
                     }
                 }
             });
-            st[g].sort((a, b) => b.pts - a.pts);
+            st[g].sort((a, b) => {
+                if (b.pts !== a.pts) return b.pts - a.pts;
+                if (b.winGames !== a.winGames) return b.winGames - a.winGames;
+                return (b.winGames - b.loseGames) - (a.winGames - a.loseGames);
+            });
         }
         return st;
     }
@@ -344,9 +487,11 @@
         for(let g in groups) {
             if(groups[g].length === 0) continue;
             html += `<h3>組別 ${g}</h3><div class="grid-2">`;
-            html += `<div><h4>積分榜</h4><table><tr><th>名</th><th>隊伍</th><th>賽</th><th>3分</th><th>2分</th><th>1分</th><th>0分</th><th>積分</th></tr>`;
+            html += `<div><h4>積分榜</h4><table><tr><th>名</th><th>隊伍</th><th>賽</th><th>贏局</th><th>輸局</th><th>得失差</th><th>積分</th></tr>`;
             st[g].forEach((t, i) => {
-                html += `<tr><td>${i+1}</td><td><b>${t.name}</b></td><td>${t.played}</td><td>${t.w3}</td><td>${t.w2}</td><td>${t.l1}</td><td>${t.l0}</td><td><b>${t.pts}</b></td></tr>`;
+                let diff = t.winGames - t.loseGames;
+                let diffStr = diff > 0 ? `+${diff}` : diff;
+                html += `<tr><td>${i+1}</td><td><b>${t.name}</b></td><td>${t.played}</td><td style="color:#34d399; font-weight:600;">${t.winGames}</td><td style="color:#f43f5e;">${t.loseGames}</td><td>${diffStr}</td><td><b>${t.pts}</b></td></tr>`;
             });
             html += `</table></div><div><h4>對賽比分填寫</h4>`;
             matches[g].forEach(m => {
@@ -358,11 +503,11 @@
         container.innerHTML = html;
     }
 
-    // 小組賽：4個盤
     function generateSchedule() {
         let allM = [];
         for(let g in state.youthMatches) state.youthMatches[g].forEach(m => allM.push({g, ...m, type:'青年'}));
         for(let g in state.kidsMatches) state.kidsMatches[g].forEach(m => allM.push({g, ...m, type:'兒童'}));
+
         if(allM.length === 0) { 
             document.getElementById('scheduleContainer').innerHTML = '請先完成抽籤。';
             return; 
@@ -378,7 +523,6 @@
         document.getElementById('scheduleContainer').innerHTML = html + '</div>';
     }
 
-    // 淘汰賽：3個盤
     function generateKoSchedule() {
         let ko = [];
         youthBracketState.qf.forEach(m => { if(m.t1 && m.t2) ko.push({stage:'青年八強', t1:m.t1, t2:m.t2}); });
@@ -466,14 +610,14 @@
         let rc = isAdmin ? '' : 'readonly';
         let html = `<div class="bracket-round"><h3>八強</h3>` + youthBracketState.qf.map((m,i)=>`<div class="bracket-match"><div class="bracket-team ${rc} ${youthBracketState.qf[i].w===m.t1?'winner':''}" onclick="setYouthWinner('qf',${i},'${m.t1}')">${m.t1||'等待'}</div><div style="text-align:center;font-size:12px;color:var(--text-muted);margin:2px 0;">VS</div><div class="bracket-team ${rc} ${youthBracketState.qf[i].w===m.t2?'winner':''}" onclick="setYouthWinner('qf',${i},'${m.t2}')">${m.t2||'等待'}</div></div>`).join('') + `</div>`;
         html += `<div class="bracket-round"><h3>四強</h3>` + youthBracketState.sf.map((m,i)=>`<div class="bracket-match" style="margin:40px 0;"><div class="bracket-team ${rc} ${youthBracketState.sf[i].w===m.t1?'winner':''}" onclick="setYouthWinner('sf',${i},'${m.t1}')">${m.t1||'等待'}</div><div style="text-align:center;font-size:12px;color:var(--text-muted);margin:2px 0;">VS</div><div class="bracket-team ${rc} ${youthBracketState.sf[i].w===m.t2?'winner':''}" onclick="setYouthWinner('sf',${i},'${m.t2}')">${m.t2||'等待'}</div></div>`).join('') + `</div>`;
-        html += `<div class="bracket-round"><h3>決賽</h3><div class="bracket-match"><h4 style="margin:0 0 4px;color:var(--primary);">冠軍戰</h4><div class="bracket-team ${rc} ${youthBracketState.final.w===youthBracketState.final.t1?'winner':''}" onclick="setYouthWinner('final',0,'${youthBracketState.final.t1}')">${youthBracketState.final.t1||'等待'}</div><div style="text-align:center;font-size:12px;color:var(--text-muted);margin:2px 0;">VS</div><div class="bracket-team ${rc} ${youthBracketState.final.w===youthBracketState.final.t2?'winner':''}" onclick="setYouthWinner('final',0,'${youthBracketState.final.t2}')">${youthBracketState.final.t2||'等待'}</div></div><div class="bracket-match"><h4 style="margin:0 0 4px;color:var(--text-muted);">季軍戰</h4><div class="bracket-team ${rc} ${youthBracketState.third.w===youthBracketState.third.t1?'winner':''}" onclick="setYouthWinner('third',0,'${youthBracketState.third.t1}')">${youthBracketState.third.t1||'等待'}</div><div style="text-align:center;font-size:12px;color:var(--text-muted);margin:2px 0;">VS</div><div class="bracket-team ${rc} ${youthBracketState.third.w===youthBracketState.third.t2?'winner':''}" onclick="setYouthWinner('third',0,'${youthBracketState.third.t2}')">${youthBracketState.third.t2||'等待'}</div></div></div>`;
+        html += `<div class="bracket-round"><h3>決賽</h3><div class="bracket-match"><h4 style="margin:0 0 4px;color:var(--primary-light);">冠軍戰</h4><div class="bracket-team ${rc} ${youthBracketState.final.w===youthBracketState.final.t1?'winner':''}" onclick="setYouthWinner('final',0,'${youthBracketState.final.t1}')">${youthBracketState.final.t1||'等待'}</div><div style="text-align:center;font-size:12px;color:var(--text-muted);margin:2px 0;">VS</div><div class="bracket-team ${rc} ${youthBracketState.final.w===youthBracketState.final.t2?'winner':''}" onclick="setYouthWinner('final',0,'${youthBracketState.final.t2}')">${youthBracketState.final.t2||'等待'}</div></div><div class="bracket-match"><h4 style="margin:0 0 4px;color:var(--text-muted);">季軍戰</h4><div class="bracket-team ${rc} ${youthBracketState.third.w===youthBracketState.third.t1?'winner':''}" onclick="setYouthWinner('third',0,'${youthBracketState.third.t1}')">${youthBracketState.third.t1||'等待'}</div><div style="text-align:center;font-size:12px;color:var(--text-muted);margin:2px 0;">VS</div><div class="bracket-team ${rc} ${youthBracketState.third.w===youthBracketState.third.t2?'winner':''}" onclick="setYouthWinner('third',0,'${youthBracketState.third.t2}')">${youthBracketState.third.t2||'等待'}</div></div></div>`;
         document.getElementById('youthBracketContainer').innerHTML = html;
     }
 
     function renderKidsBracket() {
         let rc = isAdmin ? '' : 'readonly';
         let html = `<div class="bracket-round"><h3>四強</h3>` + kidsBracketState.sf.map((m,i)=>`<div class="bracket-match" style="margin:20px 0;"><div class="bracket-team ${rc} ${kidsBracketState.sf[i].w===m.t1?'winner':''}" onclick="setKidsWinner('sf',${i},'${m.t1}')">${m.t1||'等待'}</div><div style="text-align:center;font-size:12px;color:var(--text-muted);margin:2px 0;">VS</div><div class="bracket-team ${rc} ${kidsBracketState.sf[i].w===m.t2?'winner':''}" onclick="setKidsWinner('sf',${i},'${m.t2}')">${m.t2||'等待'}</div></div>`).join('') + `</div>`;
-        html += `<div class="bracket-round"><h3>決賽</h3><div class="bracket-match"><h4 style="margin:0 0 4px;color:var(--primary);">冠軍戰</h4><div class="bracket-team ${rc} ${kidsBracketState.final.w===kidsBracketState.final.t1?'winner':''}" onclick="setYouthWinner('final',0,'${kidsBracketState.final.t1}')">${kidsBracketState.final.t1||'等待'}</div><div style="text-align:center;font-size:12px;color:var(--text-muted);margin:2px 0;">VS</div><div class="bracket-team ${rc} ${kidsBracketState.final.w===kidsBracketState.final.t2?'winner':''}" onclick="setYouthWinner('final',0,'${kidsBracketState.final.t2}')">${kidsBracketState.final.t2||'等待'}</div></div><div class="bracket-match"><h4 style="margin:0 0 4px;color:var(--text-muted);">季軍戰</h4><div class="bracket-team ${rc} ${kidsBracketState.third.w===kidsBracketState.third.t1?'winner':''}" onclick="setYouthWinner('third',0,'${kidsBracketState.third.t1}')">${kidsBracketState.third.t1||'等待'}</div><div style="text-align:center;font-size:12px;color:var(--text-muted);margin:2px 0;">VS</div><div class="bracket-team ${rc} ${kidsBracketState.third.w===kidsBracketState.third.t2?'winner':''}" onclick="setYouthWinner('third',0,'${kidsBracketState.third.t2}')">${kidsBracketState.third.t2||'等待'}</div></div></div>`;
+        html += `<div class="bracket-round"><h3>決賽</h3><div class="bracket-match"><h4 style="margin:0 0 4px;color:var(--primary-light);">冠軍戰</h4><div class="bracket-team ${rc} ${kidsBracketState.final.w===kidsBracketState.final.t1?'winner':''}" onclick="setYouthWinner('final',0,'${kidsBracketState.final.t1}')">${kidsBracketState.final.t1||'等待'}</div><div style="text-align:center;font-size:12px;color:var(--text-muted);margin:2px 0;">VS</div><div class="bracket-team ${rc} ${kidsBracketState.final.w===kidsBracketState.final.t2?'winner':''}" onclick="setYouthWinner('final',0,'${kidsBracketState.final.t2}')">${kidsBracketState.final.t2||'等待'}</div></div><div class="bracket-match"><h4 style="margin:0 0 4px;color:var(--text-muted);">季軍戰</h4><div class="bracket-team ${rc} ${kidsBracketState.third.w===kidsBracketState.third.t1?'winner':''}" onclick="setYouthWinner('third',0,'${kidsBracketState.third.t1}')">${kidsBracketState.third.t1||'等待'}</div><div style="text-align:center;font-size:12px;color:var(--text-muted);margin:2px 0;">VS</div><div class="bracket-team ${rc} ${kidsBracketState.third.w===kidsBracketState.third.t2?'winner':''}" onclick="setYouthWinner('third',0,'${kidsBracketState.third.t2}')">${kidsBracketState.third.t2||'等待'}</div></div></div>`;
         document.getElementById('kidsBracketContainer').innerHTML = html;
     }
 </script>
