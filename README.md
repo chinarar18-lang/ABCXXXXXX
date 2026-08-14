@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🌀 陀螺比賽雲端實時管理系統</title>
-    <!-- 引入高顏值中文字體：丸編體/少女風格字體 -->
     <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=M+PLUS+Rounded+1c:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root { 
@@ -124,7 +123,7 @@
         
         .btn-success { background: linear-gradient(135deg, #10b981, #047857); box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3); }
         
-        select, input[type="text"], input[type="password"] { 
+        select, input[type="text"], input[type="password"], input[type="number"] { 
             background-color: #0f172a;
             color: white;
             padding: 8px 12px; 
@@ -160,9 +159,11 @@
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
         .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
         
-        .match-row { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 12px; padding: 12px; background-color: #0f172a; border-radius: 10px; border: 1px solid var(--border); }
-        .team-name { width: 140px; text-align: right; font-weight: 600; color: #e2e8f0; }
-        .team-name.right { text-align: left; }
+        .match-card { background: #0f172a; border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 14px; }
+        .match-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-weight: 600; color: #93c5fd; }
+        .match-teams-line { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-size: 15px; }
+        .sets-container { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+        .set-box { background: #1e293b; border: 1px solid var(--border); border-radius: 6px; padding: 6px; display: flex; align-items: center; gap: 4px; font-size: 13px; }
         
         .bracket-container { display: flex; justify-content: space-between; gap: 16px; overflow-x: auto; padding: 10px 0; }
         .bracket-round { display: flex; flex-direction: column; justify-content: space-around; flex: 1; min-width: 220px; }
@@ -283,7 +284,7 @@
 </div>
 
 <script>
-    const ADMIN_PASSWORD = "123"; // 密碼已改為 123
+    const ADMIN_PASSWORD = "123"; 
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw3_WKdwd6yUt_oRibRIL62jjboDkapre7Wwx4Pcfet5rs0CCfhyCfSqkCchubThhvl/exec"; 
 
     let isAdmin = false;
@@ -373,7 +374,17 @@
         let mId = 1;
         for (let i = 0; i < teams.length; i++) {
             for (let j = i + 1; j < teams.length; j++) {
-                matchObj[groupId].push({ id: `${groupId}-${mId++}`, t1: teams[i], t2: teams[j], s1: "", s2: "" });
+                // 每場對賽預設包含 3 個 set (s1, s2 分數)，初始為空
+                matchObj[groupId].push({ 
+                    id: `${groupId}-${mId++}`, 
+                    t1: teams[i], 
+                    t2: teams[j], 
+                    sets: [
+                        {t1Score: '', t2Score: ''},
+                        {t1Score: '', t2Score: ''},
+                        {t1Score: '', t2Score: ''}
+                    ] 
+                });
             }
         }
     }
@@ -430,13 +441,13 @@
         document.getElementById('kidsGroupsResult').innerHTML = html || '尚未進行抽籤';
     }
 
-    function updateScore(type, groupId, matchId, tIndex, val) {
+    function updateSetScore(type, groupId, matchId, setIdx, teamSide, val) {
         if(!isAdmin) return;
         let matches = type === 'youth' ? state.youthMatches[groupId] : state.kidsMatches[groupId];
         let m = matches.find(x => x.id === matchId);
         if(m) {
-            if(tIndex === 1) m.s1 = val;
-            if(tIndex === 2) m.s2 = val;
+            if(teamSide === 1) m.sets[setIdx].t1Score = val;
+            if(teamSide === 2) m.sets[setIdx].t2Score = val;
         }
         renderGroupView(type);
     }
@@ -444,32 +455,55 @@
     function calculateStandings(groups, matches) {
         let st = {};
         for(let g in groups) {
-            st[g] = groups[g].map(name => ({ name, played: 0, winGames: 0, loseGames: 0, pts: 0 }));
+            st[g] = groups[g].map(name => ({ name, played: 0, winGames: 0, loseGames: 0, totalScore: 0, pts: 0 }));
             if(!matches[g]) continue;
             matches[g].forEach(m => {
-                if(m.s1 !== "" && m.s2 !== "") {
-                    let s1 = parseInt(m.s1);
-                    let s2 = parseInt(m.s2);
-                    let t1 = st[g].find(x => x.name === m.t1);
-                    let t2 = st[g].find(x => x.name === m.t2);
-                    if(t1 && t2) {
-                        t1.played++; t2.played++;
-                        t1.winGames += s1;
-                        t1.loseGames += s2;
-                        t2.winGames += s2;
-                        t2.loseGames += s1;
+                let t1Obj = st[g].find(x => x.name === m.t1);
+                let t2Obj = st[g].find(x => x.name === m.t2);
+                if(!t1Obj || !t2Obj) return;
 
-                        if(s1 === 3 && s2 === 0) { t1.pts += 3; }
-                        else if(s1 === 2 && s2 === 1) { t1.pts += 2; t2.pts += 1; }
-                        else if(s1 === 1 && s2 === 2) { t2.pts += 2; t1.pts += 1; }
-                        else if(s1 === 0 && s2 === 3) { t2.pts += 3; }
+                let t1SetsWon = 0;
+                let t2SetsWon = 0;
+                let hasPlayed = false;
+
+                m.sets.forEach(set => {
+                    if(set.t1Score !== "" && set.t2Score !== "") {
+                        hasPlayed = true;
+                        let s1 = parseInt(set.t1Score);
+                        let s2 = parseInt(set.t2Score);
+                        t1Obj.totalScore += s1;
+                        t2Obj.totalScore += s2;
+
+                        // 每一局若分數 >= 4 即算贏得該局
+                        if(s1 >= 4 && s1 > s2) {
+                            t1SetsWon++;
+                        } else if(s2 >= 4 && s2 > s1) {
+                            t2SetsWon++;
+                        }
                     }
+                });
+
+                if(hasPlayed) {
+                    t1Obj.played++;
+                    t2Obj.played++;
+                    t1Obj.winGames += t1SetsWon;
+                    t1Obj.loseGames += t2SetsWon;
+                    t2Obj.winGames += t2SetsWon;
+                    t2Obj.loseGames += t1SetsWon;
+
+                    // 三盤兩勝積分判定：2:0或2:1得3分/0分 或 對賽勝負
+                    if(t1SetsWon === 2 && t2SetsWon === 0) { t1Obj.pts += 3; }
+                    else if(t1SetsWon === 2 && t2SetsWon === 1) { t1Obj.pts += 2; t2Obj.pts += 1; }
+                    else if(t1SetsWon === 1 && t2SetsWon === 2) { t2Obj.pts += 2; t1Obj.pts += 1; }
+                    else if(t1SetsWon === 0 && t2SetsWon === 2) { t2Obj.pts += 3; }
                 }
             });
+
+            // 排序：積分高優先 -> 贏局多優先 -> 賽分(總得分)高優先
             st[g].sort((a, b) => {
                 if (b.pts !== a.pts) return b.pts - a.pts;
                 if (b.winGames !== a.winGames) return b.winGames - a.winGames;
-                return (b.winGames - b.loseGames) - (a.winGames - a.loseGames);
+                return b.totalScore - a.totalScore;
             });
         }
         return st;
@@ -486,21 +520,37 @@
         for(let g in groups) {
             if(groups[g].length === 0) continue;
             html += `<h3>組別 ${g}</h3><div class="grid-2">`;
-            html += `<div><h4>積分榜</h4><table><tr><th>名</th><th>隊伍</th><th>賽</th><th>贏局</th><th>輸局</th><th>得失差</th><th>積分</th></tr>`;
+            // 積分榜增加「賽分」欄位
+            html += `<div><h4>積分榜</h4><table><tr><th>名</th><th>隊伍</th><th>賽</th><th>贏局</th><th>輸局</th><th>賽分</th><th>積分</th></tr>`;
             st[g].forEach((t, i) => {
-                let diff = t.winGames - t.loseGames;
-                let diffStr = diff > 0 ? `+${diff}` : diff;
-                html += `<tr><td>${i+1}</td><td><b>${t.name}</b></td><td>${t.played}</td><td style="color:#34d399; font-weight:600;">${t.winGames}</td><td style="color:#f43f5e;">${t.loseGames}</td><td>${diffStr}</td><td><b>${t.pts}</b></td></tr>`;
+                html += `<tr><td>${i+1}</td><td><b>${t.name}</b></td><td>${t.played}</td><td style="color:#34d399; font-weight:600;">${t.winGames}</td><td style="color:#f43f5e;">${t.loseGames}</td><td>${t.totalScore}</td><td><b>${t.pts}</b></td></tr>`;
             });
-            html += `</table></div><div><h4>對賽比分填寫</h4>`;
+            html += `</table></div><div><h4>對賽比分填寫 (3盤2勝)</h4>`;
+            
             matches[g].forEach(m => {
                 let dis = isAdmin ? '' : 'disabled';
-                let opts = ['','0','1','2','3'];
-                let optHtml1 = opts.map(o => `<option value="${o}" ${m.s1===o?'selected':''}>${o===''?'-':o}</option>`).join('');
-                let optHtml2 = opts.map(o => `<option value="${o}" ${m.s2===o?'selected':''}>${o===''?'-':o}</option>`).join('');
+                html += `<div class="match-card">
+                    <div class="match-header"><span>${m.id} 組內對賽</span></div>
+                    <div class="match-teams-line">
+                        <span style="font-weight:600; width:100px; text-align:right;">${m.t1}</span>
+                        <span style="color:var(--text-muted);">vs</span>
+                        <span style="font-weight:600; width:100px; text-align:left;">${m.t2}</span>
+                    </div>
+                    <div class="sets-container">`;
+                
+                // 渲染 3 個 set 的輸入
+                m.sets.forEach((set, sIdx) => {
+                    html += `<div class="set-box">
+                        <span>Set ${sIdx+1}:</span>
+                        <input type="number" min="0" max="10" ${dis} style="width:40px; padding:4px;" value="${set.t1Score}" oninput="updateSetScore('${type}','${g}','${m.id}',${sIdx},1,this.value)">
+                        <span>:</span>
+                        <input type="number" min="0" max="10" ${dis} style="width:40px; padding:4px;" value="${set.t2Score}" oninput="updateSetScore('${type}','${g}','${m.id}',${sIdx},2,this.value)">
+                    </div>`;
+                });
 
-                html += `<div class="match-row"><span class="team-name">${m.t1}</span><select ${dis} onchange="updateScore('${type}','${g}','${m.id}',1,this.value)">${optHtml1}</select><span>:</span><select ${dis} onchange="updateScore('${type}','${g}','${m.id}',2,this.value)">${optHtml2}</select><span class="team-name right">${m.t2}</span></div>`;
+                html += `</div></div>`;
             });
+
             html += `</div></div><hr style="border:0; border-top:1px solid var(--border); margin: 20px 0;">`;
         }
         container.innerHTML = html;
@@ -639,9 +689,10 @@
         let opts3 = ['','2','1','0'];
         let opts5 = ['','3','2','1','0'];
 
-        let html = `<div class="bracket-round"><h3>八強</h3>` + youthBracketState.qf.map((m,i)=>{
-            let o1 = opts3.map(o => `<option value="${o}" ${m.s1===o?'selected':''}>${o===''?'-':o}</option>`).join('');
-            let o2 = opts3.map(o => `<option value="${o}" ${m.s2===o?'selected':''}>${o===''?'-':o}</option>`).join('');
+        // 八強、四強均改為五盤三勝 (0~3)
+        let html = `<div class="bracket-round"><h3>八強 (5盤3勝)</h3>` + youthBracketState.qf.map((m,i)=>{
+            let o1 = opts5.map(o => `<option value="${o}" ${m.s1===o?'selected':''}>${o===''?'-':o}</option>`).join('');
+            let o2 = opts5.map(o => `<option value="${o}" ${m.s2===o?'selected':''}>${o===''?'-':o}</option>`).join('');
             return `<div class="bracket-match">
                 <div class="bracket-team-box ${youthBracketState.qf[i].w===m.t1 && m.t1?'winner':''}">
                     <span class="bracket-team-name">${m.t1||'等待'}</span>
@@ -655,7 +706,7 @@
             </div>`;
         }).join('') + `</div>`;
 
-        html += `<div class="bracket-round"><h3>四強</h3>` + youthBracketState.sf.map((m,i)=>{
+        html += `<div class="bracket-round"><h3>四強 (5盤3勝)</h3>` + youthBracketState.sf.map((m,i)=>{
             let o1 = opts5.map(o => `<option value="${o}" ${m.s1===o?'selected':''}>${o===''?'-':o}</option>`).join('');
             let o2 = opts5.map(o => `<option value="${o}" ${m.s2===o?'selected':''}>${o===''?'-':o}</option>`).join('');
             return `<div class="bracket-match" style="margin:40px 0;">
@@ -707,12 +758,12 @@
 
     function renderKidsBracket() {
         let dis = isAdmin ? '' : 'disabled';
-        let opts3 = ['','2','1','0'];
         let opts5 = ['','3','2','1','0'];
 
-        let html = `<div class="bracket-round"><h3>四強 (3盤2勝)</h3>` + kidsBracketState.sf.map((m,i)=>{
-            let o1 = opts3.map(o => `<option value="${o}" ${m.s1===o?'selected':''}>${o===''?'-':o}</option>`).join('');
-            let o2 = opts3.map(o => `<option value="${o}" ${m.s2===o?'selected':''}>${o===''?'-':o}</option>`).join('');
+        // 兒童組四強同樣改為五盤三勝
+        let html = `<div class="bracket-round"><h3>四強 (5盤3勝)</h3>` + kidsBracketState.sf.map((m,i)=>{
+            let o1 = opts5.map(o => `<option value="${o}" ${m.s1===o?'selected':''}>${o===''?'-':o}</option>`).join('');
+            let o2 = opts5.map(o => `<option value="${o}" ${m.s2===o?'selected':''}>${o===''?'-':o}</option>`).join('');
             return `<div class="bracket-match" style="margin:20px 0;">
                 <div class="bracket-team-box ${kidsBracketState.sf[i].w===m.t1 && m.t1?'winner':''}">
                     <span class="bracket-team-name">${m.t1||'等待'}</span>
@@ -753,7 +804,7 @@
                 <div style="text-align:center;font-size:12px;color:var(--text-muted);margin:2px 0;">VS</div>
                 <div class="bracket-team-box ${kidsBracketState.third.w===kidsBracketState.third.t2 && kidsBracketState.third.t2?'winner':''}">
                     <span class="bracket-team-name">${kidsBracketState.third.t2||'等待'}</span>
-                    <select class="bracket-score-select" ${dis} onchange="updateBracketMatch('kids','third',0,'${kidsBracketState.third.s1}',this.value)">${tO2}</select>
+                    <select class="bracket-score-select" ${dis} onchange="updateBracketMatch('kids','third',0,'${kidsBracketState.third.t1}',this.value)">${tO2}</select>
                 </div>
             </div>
         </div>`;
