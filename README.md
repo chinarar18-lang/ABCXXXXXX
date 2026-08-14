@@ -350,6 +350,7 @@
         renderYouthBracket();
         renderKidsBracket();
         generateSchedule();
+        generateKoSchedule(); // 自動同步生成淘汰賽盤次
     }
 
     function switchTab(tabId) {
@@ -529,14 +530,17 @@
         let ko = [];
         youthBracketState.qf.forEach(m => { if(m.t1 && m.t2) ko.push({stage:'青年八強', t1:m.t1, t2:m.t2}); });
         youthBracketState.sf.forEach(m => { if(m.t1 && m.t2) ko.push({stage:'青年四強', t1:m.t1, t2:m.t2}); });
-        if(youthBracketState.final.t1) ko.push({stage:'青年決賽', t1:youthBracketState.final.t1, t2:youthBracketState.final.t2});
-        if(youthBracketState.third.t1) ko.push({stage:'青年季軍', t1:youthBracketState.third.t1, t2:youthBracketState.third.t2});
+        if(youthBracketState.final.t1 && youthBracketState.final.t2) ko.push({stage:'青年決賽', t1:youthBracketState.final.t1, t2:youthBracketState.final.t2});
+        if(youthBracketState.third.t1 && youthBracketState.third.t2) ko.push({stage:'青年季軍', t1:youthBracketState.third.t1, t2:youthBracketState.third.t2});
         
         kidsBracketState.sf.forEach(m => { if(m.t1 && m.t2) ko.push({stage:'兒童四強', t1:m.t1, t2:m.t2}); });
-        if(kidsBracketState.final.t1) ko.push({stage:'兒童決賽', t1:kidsBracketState.final.t1, t2:kidsBracketState.final.t2});
-        if(kidsBracketState.third.t1) ko.push({stage:'兒童季軍', t1:kidsBracketState.third.t1, t2:kidsBracketState.third.t2});
+        if(kidsBracketState.final.t1 && kidsBracketState.final.t2) ko.push({stage:'兒童決賽', t1:kidsBracketState.final.t1, t2:kidsBracketState.final.t2});
+        if(kidsBracketState.third.t1 && kidsBracketState.third.t2) ko.push({stage:'兒童季軍', t1:kidsBracketState.third.t1, t2:kidsBracketState.third.t2});
 
-        if(ko.length === 0) { alert('請先在走線圖生成對陣'); return; }
+        if(ko.length === 0) { 
+            document.getElementById('koScheduleContainer').innerHTML = '請先初始化走線圖。';
+            return; 
+        }
         let tables = [[],[],[]];
         ko.forEach((m, i) => tables[i % 3].push(m));
         let html = '<div class="grid-3">';
@@ -565,6 +569,7 @@
             {t1: t.C1, t2: t.A2, s1:'', s2:'', w:''}
         ];
         renderYouthBracket();
+        generateKoSchedule();
         alert('青年組八強生成成功！');
     }
 
@@ -577,10 +582,10 @@
             {t1: st['E'][0]?.name||'', t2: st['D'][1]?.name||'', s1:'', s2:'' , w:''}
         ];
         renderKidsBracket();
+        generateKoSchedule();
         alert('兒童組四強生成成功！');
     }
 
-    // 淘汰賽比分輸入與自動判定勝者
     function updateBracketMatch(category, round, idx, s1Val, s2Val) {
         if(!isAdmin) return;
         let bracket = category === 'youth' ? youthBracketState : kidsBracketState;
@@ -607,6 +612,7 @@
 
         if(category === 'youth') renderYouthBracket();
         else renderKidsBracket();
+        generateKoSchedule();
     }
 
     function propagateWinner(category, round, idx, winner, loser) {
@@ -618,38 +624,19 @@
                 bracket.sf[1][idx === 2 ? 't1' : 't2'] = winner;
             }
         } else if(round === 'sf') {
-            if(category === 'youth') {
-                if(idx === 0) {
-                    bracket.final.t1 = winner;
-                    bracket.third.t1 = loser;
-                } else {
-                    bracket.final.t2 = winner;
-                    bracket.third.t2 = loser;
-                }
+            if(idx === 0) {
+                bracket.final.t1 = winner;
+                bracket.third.t1 = loser;
             } else {
-                if(idx === 0) {
-                    bracket.final.t1 = winner;
-                    bracket.third.t1 = loser;
-                } else {
-                    bracket.final.t2 = winner;
-                    bracket.third.t2 = loser;
-                }
+                bracket.final.t2 = winner;
+                bracket.third.t2 = loser;
             }
         }
     }
 
     function renderYouthBracket() {
         let dis = isAdmin ? '' : 'disabled';
-        
-        // 八強、兒童四強 (三盤兩勝：可選 2, 1, 0)
         let opts3 = ['','2','1','0'];
-        let genSelect3 = (sVal, roundName, roundIdx, targetT) => {
-            let otherS = targetT === 1 ? youthBracketState.qf[roundIdx].s2 : youthBracketState.qf[roundIdx].s1;
-            if(roundName==='sf') otherS = targetT === 1 ? youthBracketState.sf[roundIdx].s2 : youthBracketState.sf[roundIdx].s1;
-            return opts3.map(o => `<option value="${o}" ${sVal===o?'selected':''}>${o===''?'-':o}</option>`).join('');
-        };
-
-        // 四強、冠軍戰、季軍戰 (五盤三勝：可選 3, 2, 1, 0)
         let opts5 = ['','3','2','1','0'];
 
         let html = `<div class="bracket-round"><h3>八強</h3>` + youthBracketState.qf.map((m,i)=>{
