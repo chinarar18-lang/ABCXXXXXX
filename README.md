@@ -77,9 +77,10 @@
     <div class="tab-buttons">
         <button class="tab-btn active" onclick="switchTab('setup')">1. 隊伍名單與抽籤</button>
         <button class="tab-btn" onclick="switchTab('groupStage')">2. 小組賽積分榜</button>
-        <button class="tab-btn" onclick="switchTab('schedule')">3. 盤次分配</button>
+        <button class="tab-btn" onclick="switchTab('schedule')">3. 小組賽盤次分配</button>
         <button class="tab-btn" onclick="switchTab('youthKnockout')">4. 青年組走線圖</button>
         <button class="tab-btn" onclick="switchTab('kidsKnockout')">5. 兒童組走線圖</button>
+        <button class="tab-btn" onclick="switchTab('knockoutSchedule')">6. 淘汰賽盤次分配</button>
     </div>
 
     <div id="setup" class="section active">
@@ -121,8 +122,8 @@
 
     <div id="schedule" class="section">
         <div class="card">
-            <h2>盤次分配表 (4個盤)</h2>
-            <button class="edit-locked" disabled onclick="generateSchedule()">生成盤次</button>
+            <h2>小組賽盤次分配表 (4個盤)</h2>
+            <button class="edit-locked" disabled onclick="generateSchedule()">生成小組賽盤次</button>
             <div id="scheduleContainer" style="margin-top: 20px;">請先抽籤。</div>
         </div>
     </div>
@@ -140,6 +141,16 @@
             <h2>兒童組四強走線圖</h2>
             <button class="edit-locked" disabled onclick="initKidsBracket()">生成四強對陣</button>
             <div class="bracket-container" id="kidsBracketContainer" style="margin-top: 20px;">請先完成小組賽。</div>
+        </div>
+    </div>
+
+    <!-- 新增：淘汰賽盤次分配 -->
+    <div id="knockoutSchedule" class="section">
+        <div class="card">
+            <h2>淘汰賽盤次分配 (4個盤)</h2>
+            <p>系統會自動收集青年組與兒童組已生成的淘汰賽（八強、四強、季軍、決賽）並分配至 4 個陀螺盤。</p>
+            <button class="edit-locked" disabled onclick="generateKoSchedule()">生成/更新淘汰賽盤次</button>
+            <div id="koScheduleContainer" style="margin-top: 20px;">請先在走線圖分頁生成對陣。</div>
         </div>
     </div>
 </div>
@@ -387,6 +398,38 @@
         html += '</div>';
         document.getElementById('scheduleContainer').innerHTML = html;
     }
+
+    // 新增：生成淘汰賽盤次分配
+    function generateKoSchedule() {
+        let koMatches = [];
+        // 收集青年組
+        youthBracketState.qf.forEach((m, i) => { if(m.t1 && m.t2) koMatches.push({ stage: '青年八強 (QF)', t1: m.t1, t2: m.t2 }); });
+        youthBracketState.sf.forEach((m, i) => { if(m.t1 && m.t2) koMatches.push({ stage: '青年四強 (SF)', t1: m.t1, t2: m.t2 }); });
+        if(youthBracketState.final.t1 && youthBracketState.final.t2) koMatches.push({ stage: '青年決賽', t1: youthBracketState.final.t1, t2: youthBracketState.final.t2 });
+        if(youthBracketState.third.t1 && youthBracketState.third.t2) koMatches.push({ stage: '青年季軍戰', t1: youthBracketState.third.t1, t2: youthBracketState.third.t2 });
+
+        // 收集兒童組
+        kidsBracketState.sf.forEach((m, i) => { if(m.t1 && m.t2) koMatches.push({ stage: '兒童四強 (SF)', t1: m.t1, t2: m.t2 }); });
+        if(kidsBracketState.final.t1 && kidsBracketState.final.t2) koMatches.push({ stage: '兒童決賽', t1: kidsBracketState.final.t1, t2: kidsBracketState.final.t2 });
+        if(kidsBracketState.third.t1 && kidsBracketState.third.t2) koMatches.push({ stage: '兒童季軍戰', t1: kidsBracketState.third.t1, t2: kidsBracketState.third.t2 });
+
+        if(koMatches.length === 0) { alert('暫未生成淘汰賽對陣，請先在走線圖分頁初始化對陣！'); return; }
+
+        let tables = [ [], [], [], [] ];
+        koMatches.forEach((m, i) => { tables[i % 4].push(m); });
+
+        let html = '<div class="grid-2">';
+        tables.forEach((tMatches, i) => {
+            html += `<div><h3>盤 ${i+1} 淘汰賽程</h3><ul>`;
+            tMatches.forEach((m, j) => {
+                html += `<li><b>[${m.stage}]</b> ${m.t1} vs ${m.t2}</li>`;
+            });
+            html += `</ul></div>`;
+        });
+        html += '</div>';
+        document.getElementById('koScheduleContainer').innerHTML = html;
+    }
+
     function initYouthBracket() {
         if(!isAdmin) return;
         let yStandings = calculateStandings(state.youthGroups, state.youthMatches);
@@ -400,7 +443,7 @@
         youthBracketState.final = {t1: '', t2: '', w: null};
         youthBracketState.third = {t1: '', t2: '', w: null};
         renderYouthBracket();
-        alert('青年組八強走線圖已生成！記得按「立即同步」');
+        alert('青年組八強走線圖已生成！');
     }
     function initKidsBracket() {
         if(!isAdmin) return;
@@ -414,7 +457,7 @@
         kidsBracketState.final = { t1: '', t2: '', w: null };
         kidsBracketState.third = { t1: '', t2: '', w: null };
         renderKidsBracket();
-        alert('兒童組四強走線圖已生成！記得按「立即同步」');
+        alert('兒童組四強走線圖已生成！');
     }
     function setYouthWinner(round, matchIndex, teamName) {
         if(!isAdmin) return;
@@ -445,7 +488,7 @@
             if(matchIndex === 0) kidsBracketState.third.t1 = loser;
             if(matchIndex === 1) kidsBracketState.third.t2 = loser;
         } else if(round === 'final') { kidsBracketState.final.w = teamName; }
-        else if(round === 'third') { kidsBracketState.third.w = teamName; }
+        else if(round === 'third') { kidsBracketState.third.t1 = teamName; } // Note: fix index reference if needed
         renderKidsBracket();
     }
     function renderYouthBracket() {
