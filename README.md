@@ -283,7 +283,7 @@
 </div>
 
 <script>
-    const ADMIN_PASSWORD = "admin888"; 
+    const ADMIN_PASSWORD = "123"; // 密碼已改為 123
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw3_WKdwd6yUt_oRibRIL62jjboDkapre7Wwx4Pcfet5rs0CCfhyCfSqkCchubThhvl/exec"; 
 
     let isAdmin = false;
@@ -350,7 +350,7 @@
         renderYouthBracket();
         renderKidsBracket();
         generateSchedule();
-        generateKoSchedule(); // 自動同步生成淘汰賽盤次
+        generateKoSchedule();
     }
 
     function switchTab(tabId) {
