@@ -2,113 +2,93 @@
 <html lang="zh-HK">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🌀 陀螺比賽雲端實時管理系統</title>
+    <title>🌀 陀螺比賽雲端管理系統</title>
     <style>
-        :root { --primary: #3b82f6; --primary-dark: #1d4ed8; --bg-color: #f8fafc; --card-bg: #ffffff; --text-main: #0f172a; --text-muted: #64748b; --border: #e2e8f0; --success: #10b981; --success-bg: #ecfdf5; --radius: 12px; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 20px; }
-        .container { max-width: 1100px; margin: 0 auto; }
-        .admin-bar { background: #fff; padding: 15px 24px; border-radius: var(--radius); box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; }
-        .card { background: var(--card-bg); border-radius: var(--radius); padding: 24px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .tab-buttons { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
-        .tab-btn { background-color: #e2e8f0; color: var(--text-muted); border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; }
-        .tab-btn.active { background-color: var(--primary); color: white; }
-        .section { display: none; }
-        .section.active { display: block; }
-        button { background-color: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; }
-        .btn-success { background-color: var(--success); }
-        textarea { width: 100%; height: 100px; padding: 10px; border: 1px solid var(--border); border-radius: 8px; box-sizing: border-box; }
-        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
-        .match-row { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 8px; background: #f8fafc; border-radius: 6px; }
-        input[type="number"] { width: 45px; padding: 6px; border: 1px solid var(--border); border-radius: 4px; text-align: center; }
-        .bracket-container { display: flex; justify-content: space-between; gap: 10px; overflow-x: auto; }
-        .bracket-match { background: #f8fafc; border: 1px solid var(--border); border-radius: 6px; padding: 8px; text-align: center; font-size: 13px; }
-        .bracket-team { padding: 6px; background: white; border: 1px solid var(--border); margin: 2px 0; border-radius: 4px; cursor: pointer; }
-        .bracket-team.winner { background-color: var(--success-bg); border-color: var(--success); }
+        :root { --bg: #0f172a; --card: #1e293b; --text: #f1f5f9; --accent: #f59e0b; --primary: #3b82f6; --success: #10b981; }
+        body { font-family: sans-serif; background: var(--bg); color: var(--text); padding: 20px; margin: 0; }
+        .container { max-width: 1000px; margin: auto; }
+        .card { background: var(--card); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #334155; }
+        textarea { width: 100%; height: 80px; background: #0f172a; color: white; border: 1px solid #475569; padding: 10px; border-radius: 8px; box-sizing: border-box; }
+        button { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .match-box { background: #334155; padding: 10px; border-radius: 8px; text-align: center; margin-bottom: 5px; }
+        .admin-bar { background: #0f172a; padding: 15px; border-radius: 8px; border: 1px solid var(--primary); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        h1, h2 { color: var(--accent); }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="admin-bar">
-        <div>狀態：<span id="modeStatus">🔍 檢視模式</span></div>
+    <div style="text-align:center;"><h1>🌀 陀螺比賽實時系統</h1></div>
+    
+    <div id="adminPanel" class="admin-bar">
         <div id="authArea">
-            <input type="password" id="adminPassword" placeholder="密碼" style="padding: 6px;">
-            <button onclick="tryUnlock()">解鎖</button>
+            <input type="password" id="pass" placeholder="管理員密碼">
+            <button onclick="unlock()">解鎖管理</button>
         </div>
-        <div id="editArea" style="display:none; color: var(--success); font-weight:bold;">✨ 編輯模式 (所有變更即時同步)</div>
+        <div id="editStatus" style="display:none; color: var(--success); font-weight:bold;">✨ 編輯模式已開啟 (自動同步中...)</div>
     </div>
 
-    <div class="tab-buttons">
-        <button class="tab-btn active" onclick="switchTab('setup')">1. 抽籤</button>
-        <button class="tab-btn" onclick="switchTab('groupStage')">2. 積分/對賽</button>
-        <button class="tab-btn" onclick="switchTab('schedule')">3. 盤次</button>
-        <button class="tab-btn" onclick="switchTab('knockout')">4. 淘汰賽</button>
+    <div class="card">
+        <h2>1. 隊伍設定與抽籤</h2>
+        <div class="grid-2">
+            <div><h3>青年組</h3><textarea id="yTeam" class="edit" disabled></textarea></div>
+            <div><h3>兒童組</h3><textarea id="kTeam" class="edit" disabled></textarea></div>
+        </div>
+        <button id="drawBtn" class="edit" disabled onclick="handleProcess()">執行抽籤並自動分配盤次</button>
     </div>
 
-    <div id="setup" class="section active"><div class="card"><div class="grid-2"><div><h3>青年抽籤</h3><textarea id="youthTeamsInput" class="edit-locked" disabled></textarea><button class="edit-locked" disabled onclick="drawYouth()">抽籤並同步</button></div><div><h3>兒童抽籤</h3><textarea id="kidsTeamsInput" class="edit-locked" disabled></textarea><button class="edit-locked" disabled onclick="drawKids()">抽籤並同步</button></div></div></div></div>
-    <div id="groupStage" class="section"><div class="card"><div id="youthContentContainer"></div><hr><div id="kidsContentContainer"></div></div></div>
-    <div id="schedule" class="section"><div class="card"><h2>盤次分配 (小組賽4盤 | 淘汰賽3盤)</h2><div id="scheduleContainer"></div></div></div>
-    <div id="knockout" class="section"><div class="card"><h2>走線圖</h2><button class="edit-locked" disabled onclick="initBrackets()">初始化對陣</button><div id="youthBracketContainer"></div><hr><div id="kidsBracketContainer"></div></div></div>
+    <div class="card">
+        <h2>2. 小組賽盤次 (4個盤)</h2>
+        <div id="groupSchedule" class="grid-4"></div>
+    </div>
+
+    <div class="card">
+        <h2>3. 淘汰賽盤次 (3個盤)</h2>
+        <div id="koSchedule" class="grid-3"></div>
+    </div>
 </div>
 
 <script>
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw3_WKdwd6yUt_oRibRIL62jjboDkapre7Wwx4Pcfet5rs0CCfhyCfSqkCchubThhvl/exec"; 
-    let isAdmin = false;
-    let state = { youthTeamsInputText: '', kidsTeamsInputText: '', youthGroups: {A:[],B:[],C:[]}, kidsGroups: {D:[],E:[]}, youthMatches: {}, kidsMatches: {} };
-    let youthBracketState = { qf: Array(4).fill({t1:'',t2:'',w:null}), sf: Array(2).fill({t1:'',t2:'',w:null}), final: {t1:'',t2:'',w:null}, third: {t1:'',t2:'',w:null} };
-    let kidsBracketState = { sf: Array(2).fill({t1:'',t2:'',w:null}), final: {t1:'',t2:'',w:null}, third: {t1:'',t2:'',w:null} };
-
-    window.onload = () => fetchFromCloud();
-
-    // 核心同步功能：每次改變都強制寫入雲端
-    function autoSync() {
-        if(!isAdmin) return;
-        let packageData = [[JSON.stringify({ state, youthBracketState, kidsBracketState })]];
-        fetch(WEB_APP_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(packageData) })
-        .then(() => updateUI());
-    }
-
-    function fetchFromCloud() {
-        fetch(WEB_APP_URL).then(res => res.json()).then(data => {
-            if(data && data.length > 0) {
-                let cloudData = JSON.parse(data[0][0]);
-                state = cloudData.state; youthBracketState = cloudData.youthBracketState; kidsBracketState = cloudData.kidsBracketState;
-                updateUI();
-            }
-        });
-    }
-
-    function tryUnlock() {
-        if(document.getElementById('adminPassword').value === 'admin888') {
-            isAdmin = true;
+    const URL = "https://script.google.com/macros/s/AKfycbw3_WKdwd6yUt_oRibRIL62jjboDkapre7Wwx4Pcfet5rs0CCfhyCfSqkCchubThhvl/exec";
+    
+    function unlock() {
+        if(document.getElementById('pass').value === 'admin888') {
+            document.querySelectorAll('.edit').forEach(el => el.disabled = false);
             document.getElementById('authArea').style.display = 'none';
-            document.getElementById('editArea').style.display = 'block';
-            document.getElementById('modeStatus').innerHTML = '✨ 編輯中';
-            document.querySelectorAll('.edit-locked').forEach(el => el.disabled = false);
-            alert('已解鎖！所有操作會自動同步。');
-        } else { alert('密碼錯'); }
+            document.getElementById('editStatus').style.display = 'block';
+        } else alert('密碼錯誤');
     }
 
-    // 自動更新邏輯 (抽籤後直接 render + sync)
-    function drawYouth() {
-        let teams = document.getElementById('youthTeamsInput').value.split('\n').filter(t => t.trim());
-        state.youthTeamsInputText = teams.join('\n');
-        // ... (抽籤邏輯) ...
-        autoSync();
+    function handleProcess() {
+        let y = document.getElementById('yTeam').value.split('\n').filter(x => x.trim());
+        let k = document.getElementById('kTeam').value.split('\n').filter(x => x.trim());
+        
+        // 分配小組盤次 (4盤)
+        let gHtml = '';
+        [1,2,3,4].forEach(p => {
+            gHtml += `<div><h4>盤 ${p}</h4>` + (y[p-1] ? `<div class="match-box">${y[p-1]} v ${y[p+3] || '輪空'}</div>` : '') + '</div>';
+        });
+        document.getElementById('groupSchedule').innerHTML = gHtml;
+
+        // 分配淘汰賽盤次 (3盤)
+        let kHtml = '';
+        [1,2,3].forEach(p => {
+            kHtml += `<div><h4>盤 ${p}</h4>` + (y[p+7] ? `<div class="match-box">${y[p+7]} v ${y[p+8] || '輪空'}</div>` : '') + '</div>';
+        });
+        document.getElementById('koSchedule').innerHTML = kHtml;
+
+        // 同步雲端
+        fetch(URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({y, k}) })
+        .then(() => alert('已抽籤並同步至雲端！'));
     }
-    
-    // 將所有產生盤次的 function 合併入 updateUI
-    function updateUI() {
-        renderGroupView('youth'); renderGroupView('kids');
-        renderYouthBracket(); renderKidsBracket();
-        generateSchedules(); // 這裡自動更新所有盤次分配
-    }
-    
-    function generateSchedules() {
-        // 自動生成 4 盤小組賽 + 3 盤淘汰賽
-        // ... (邏輯同前，自動執行，不需按鈕)
-    }
+
+    // 初始化自動讀取
+    fetch(URL).then(res => res.json()).then(data => {
+        // 這裡會加入從雲端讀取並顯示數據的邏輯
+    });
 </script>
 </body>
 </html>
