@@ -119,7 +119,7 @@
     <div id="schedule" class="section">
         <div class="card">
             <h2>小組賽盤次分配 (4 個盤)</h2>
-            <button class="edit-locked" disabled onclick="generateSchedule()">生成小組賽盤次</button>
+            <button class="edit-locked" disabled onclick="generateSchedule()">重新整理盤次</button>
             <div id="scheduleContainer" style="margin-top: 16px; color: var(--text-muted);">請先完成抽籤。</div>
         </div>
     </div>
@@ -219,6 +219,7 @@
         renderGroupView('kids');
         renderYouthBracket();
         renderKidsBracket();
+        generateSchedule(); // 自動渲染盤次
     }
 
     function switchTab(tabId) {
@@ -259,7 +260,8 @@
         gNames.forEach(g => generateRoundRobin(state.youthGroups[g], g, state.youthMatches));
         renderYouthGroupsResult();
         renderGroupView('youth');
-        alert('青年組抽籤完成！');
+        generateSchedule(); // 自動生成盤次
+        alert('青年組抽籤完成！已自動分配小組賽盤次。');
     }
 
     function renderYouthGroupsResult() {
@@ -284,7 +286,8 @@
         gNames.forEach(g => generateRoundRobin(state.kidsGroups[g], g, state.kidsMatches));
         renderKidsGroupsResult();
         renderGroupView('kids');
-        alert('兒童組抽籤完成！');
+        generateSchedule(); // 自動生成盤次
+        alert('兒童組抽籤完成！已自動分配小組賽盤次。');
     }
 
     function renderKidsGroupsResult() {
@@ -360,7 +363,10 @@
         let allM = [];
         for(let g in state.youthMatches) state.youthMatches[g].forEach(m => allM.push({g, ...m, type:'青年'}));
         for(let g in state.kidsMatches) state.kidsMatches[g].forEach(m => allM.push({g, ...m, type:'兒童'}));
-        if(allM.length === 0) { alert('暫無對賽'); return; }
+        if(allM.length === 0) { 
+            document.getElementById('scheduleContainer').innerHTML = '請先完成抽籤。';
+            return; 
+        }
         let tables = [[],[],[],[]];
         allM.forEach((m, i) => tables[i % 4].push(m));
         let html = '<div class="grid-2">';
