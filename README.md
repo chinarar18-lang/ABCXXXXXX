@@ -26,7 +26,7 @@
         .btn-success:hover { background-color: #059669; }
         input[type="number"] { width: 50px; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; text-align: center; }
         input[type="number"]:disabled, textarea:disabled { background-color: var(--readonly-bg); color: #64748b; cursor: not-allowed; }
-        textarea { width: 100%; height: 120px; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 14px; box-sizing: border-box; }
+        textarea { width: 100%; height: 120px; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 14px; box-sizing: border-box; resize: vertical; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 20px; }
         th, td { border: 1px solid var(--border-color); padding: 8px; text-align: center; font-size: 14px; }
         th { background-color: #f1f5f9; }
@@ -69,7 +69,7 @@
         </div>
         <div id="editControlArea" style="display:none;">
             <span style="color: #047857; font-weight: bold; margin-right: 10px;">✨ 編輯模式已解鎖</span>
-            <button class="btn-success" onclick="syncToCloud()">☁️ 立即同步到雲端試算表</button>
+            <button class="btn-success" onclick="syncToCloud()">☁️ 立即同步更新至雲端</button>
             <button onclick="lockAdmin()" style="background-color: #64748b;">鎖定為檢視模式</button>
         </div>
     </div>
@@ -180,10 +180,13 @@
         
         fetch(WEB_APP_URL, {
             method: 'POST',
+            mode: 'no-cors',
             body: JSON.stringify(packageData)
         })
-        .then(res => res.json())
-        .then(res => alert('☁️ 成功同步至雲端試算表！其他觀眾隨時重新整理即可見到最新賽果！'))
+        .then(() => {
+            alert('☁️ 同步指令已發送至雲端試算表！網頁將於 2 秒後重整。');
+            setTimeout(() => window.location.reload(), 2000);
+        })
         .catch(err => alert('同步失敗，請檢查網絡連線。'));
     }
 
@@ -263,7 +266,7 @@
         teams.forEach((team, i) => { state.youthGroups[groups[i % 3]].push(team); });
         renderYouthGroupsResult();
         renderGroupView('youth');
-        alert('青年組抽籤完成！記得按上方「☁️ 立即同步到雲端試算表」！');
+        alert('青年組抽籤完成！記得按上方「☁️ 立即同步更新至雲端」！');
     }
     function renderYouthGroupsResult() {
         let html = '';
@@ -285,7 +288,7 @@
         teams.forEach((team, i) => { state.kidsGroups[groups[i % 2]].push(team); });
         renderKidsGroupsResult();
         renderGroupView('kids');
-        alert('兒童組抽籤完成！記得按上方「☁️ 立即同步到雲端試算表」！');
+        alert('兒童組抽籤完成！記得按上方「☁️ 立即同步更新至雲端」！');
     }
     function renderKidsGroupsResult() {
         let html = '';
