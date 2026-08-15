@@ -199,7 +199,7 @@
     <div class="tab-buttons">
         <button class="tab-btn active" onclick="switchTab('setup')">1. 隊伍名單與設定</button>
         <button class="tab-btn" onclick="switchTab('groupStage')">2. 聯賽積分榜</button>
-        <button class="tab-btn" onclick="switchTab('schedule')">3. 聯賽盤次(4盤)</button>
+        <button class="tab-btn" onclick="switchTab('schedule')">3. 聯賽同時段盤次(4張枱)</button>
         <button class="tab-btn" onclick="switchTab('youthKnockout')">4. 青年組走線圖</button>
         <button class="tab-btn" onclick="switchTab('kidsKnockout')">5. 兒童組走線圖</button>
         <button class="tab-btn" onclick="switchTab('knockoutSchedule')">6. 淘汰賽盤次(3盤)</button>
@@ -237,10 +237,10 @@
         </div>
     </div>
 
-    <!-- 第三頁：聯賽盤次 (4個盤) -->
+    <!-- 第三頁：聯賽盤次 (4個盤同時進行) -->
     <div id="schedule" class="section">
         <div class="card">
-            <h2>聯賽盤次分配 (4 個盤 - 嚴格嚴禁連續出賽)</h2>
+            <h2>聯賽同時段盤次分配 (4 張枱同時進行 - 確保同一隊不會同時出賽)</h2>
             <button class="edit-locked" disabled onclick="generateSchedule()">重新整理盤次</button>
             <div id="scheduleContainer" style="margin-top: 16px; color: var(--text-muted);">請先生成聯賽。</div>
         </div>
@@ -462,7 +462,7 @@
         container.innerHTML = html;
     }
 
-    // 嚴格交錯的盤次分配演算法（確保每支隊伍打完一場後，下一輪必定能休息）
+    // 嚴格同時段防撞演算法 (Round-based scheduling)
     function generateSchedule() {
         let allM = [];
         state.youthMatches.forEach(m => allM.push({...m, type:'青年'}));
@@ -473,70 +473,44 @@
             return; 
         }
 
-        let tables = [[], [], [], []]; // 4個盤
-        let lastPlayedRound = {}; // 記錄每支隊伍上一次打完係第幾個盤 (0-3)
-
-        // 隨機打散比賽順序避免固定偏好
+        // 打散比賽順序
         allM.sort(() => Math.random() - 0.5);
 
-        allM.forEach(m => {
-            // 尋找 4 個盤入面最合適嘅盤口
-            // 優先條件：雙方隊伍在當前盤未出過場，且「上一盤」冇出過場（即有最少一盤抖氣時間）
-            let bestTable = -1;
-            let minScore = 9999;
+        let rounds = []; // 儲存每一個時間場次 (每個場次最多4場比賽，且所有隊伍不能重複)
+        let remainingMatches = [...allM];
 
-            for (let i = 0; i < 4; i++) {
-                let t1Last = lastPlayedRound[m.t1] ?? -99;
-                let t2Last = lastPlayedRound[m.t2] ?? -99;
+        while (remainingMatches.length > 0) {
+            let currentRoundMatches = [];
+            let busyTeamsInThisRound = new Set();
+            let nextRemaining = [];
 
-                // 檢查是否違反「連續出賽」原則（即上一個盤i-1至剛好打過）
-                let isConsecutive1 = (t1Last === i - 1);
-                let isConsecutive2 = (t2Last === i - 1);
-
-                // 同時檢查這個盤入面雙方係咪已經被編排咗
-                let alreadyInTable = tables[i].some(existing => 
-                    existing.t1 === m.t1 || existing.t2 === m.t1 || 
-                    existing.t1 === m.t2 || existing.t2 === m.t2
-                );
-
-                if (!alreadyInTable && !isConsecutive1 && !isConsecutive2) {
-                    // 評分標準：優先揀現時場次最少嘅盤
-                    let score = tables[i].length;
-                    if (score < minScore) {
-                        minScore = score;
-                        bestTable = i;
-                    }
+            for (let m of remainingMatches) {
+                // 如果呢個時間場次入面，呢場比賽嘅雙方隊伍都未出過場，而且這個時間場次未滿4場
+                if (!busyTeamsInThisRound.has(m.t1) && !busyTeamsInThisRound.has(m.t2) && currentRoundMatches.length < 4) {
+                    currentRoundMatches.push(m);
+                    busyTeamsInThisRound.add(m.t1);
+                    busyTeamsInThisRound.add(m.t2);
+                } else {
+                    nextRemaining.push(m);
                 }
             }
+            rounds.push(currentRoundMatches);
+            remainingMatches = nextRemaining;
+        }
 
-            // 如果嚴格條件下搵唔到，放寬條件（容許隔一個盤，但絕不容許連續即場打）
-            if (bestTable === -1) {
-                for (let i = 0; i < 4; i++) {
-                    let alreadyInTable = tables[i].some(existing => 
-                        existing.t1 === m.t1 || existing.t2 === m.t1 || 
-                        existing.t1 === m.t2 || existing.t2 === m.t2
-                    );
-                    if (!alreadyInTable) {
-                        bestTable = i;
-                        break;
-                    }
-                }
-            }
-
-            // 最終兜底
-            if (bestTable === -1) {
-                bestTable = 0;
-            }
-
-            tables[bestTable].push(m);
-            lastPlayedRound[m.t1] = bestTable;
-            lastPlayedRound[m.t2] = bestTable;
+        // 將所有時間場次嘅比賽平鋪展開去 4 張枱 (Round 1 嘅 4 場分別放落 4 張枱，如此類推)
+        let tables = [[], [], [], []];
+        rounds.forEach((roundMatches, roundIdx) => {
+            roundMatches.forEach((m, tableIdx) => {
+                // 幫比賽加上場次標籤顯示
+                tables[tableIdx].push({ ...m, roundNum: roundIdx + 1 });
+            });
         });
 
         let html = '<div class="grid-2">';
         tables.forEach((t, i) => {
-            html += `<div><h3>盤 ${i+1}</h3><ul>`;
-            t.forEach(m => html += `<li>[${m.type}聯賽] ${m.t1} vs ${m.t2}</li>`);
+            html += `<div><h3>盤 ${i+1} (枱 ${i+1})</h3><ul>`;
+            t.forEach(m => html += `<li><b>第 ${m.roundNum} 輪</b> [${m.type}聯賽] ${m.t1} vs ${m.t2}</li>`);
             html += `</ul></div>`;
         });
         document.getElementById('scheduleContainer').innerHTML = html + '</div>';
