@@ -240,7 +240,7 @@
     <!-- 第三頁：聯賽盤次 (4個盤) -->
     <div id="schedule" class="section">
         <div class="card">
-            <h2>聯賽盤次分配 (4 個盤)</h2>
+            <h2>聯賽盤次分配 (4 個盤 - 已優化防連續出賽)</h2>
             <button class="edit-locked" disabled onclick="generateSchedule()">重新整理盤次</button>
             <div id="scheduleContainer" style="margin-top: 16px; color: var(--text-muted);">請先生成聯賽。</div>
         </div>
@@ -462,6 +462,7 @@
         container.innerHTML = html;
     }
 
+    // 智能防連續出賽的盤次分配演算法
     function generateSchedule() {
         let allM = [];
         state.youthMatches.forEach(m => allM.push({...m, type:'青年'}));
@@ -471,8 +472,35 @@
             document.getElementById('scheduleContainer').innerHTML = '請先生成聯賽。';
             return; 
         }
-        let tables = [[],[],[],[]];
-        allM.forEach((m, i) => tables[i % 4].push(m));
+
+        let tables = [[], [], [], []]; // 4個盤
+        let tableBusyTeams = [new Set(), new Set(), new Set(), new Set()]; // 記錄每個盤已經出賽嘅隊伍
+
+        // 循序將每場比賽放入「最早可排且雙方隊伍在該盤都未出過場」的盤口
+        allM.forEach(m => {
+            let placed = false;
+            // 尋找 0 到 3 盤之中邊個盤最適合
+            for (let i = 0; i < 4; i++) {
+                if (!tableBusyTeams[i].has(m.t1) && !tableBusyTeams[i].has(m.t2)) {
+                    tables[i].push(m);
+                    tableBusyTeams[i].add(m.t1);
+                    tableBusyTeams[i].add(m.t2);
+                    placed = true;
+                    break;
+                }
+            }
+            // 如果 4 個盤剛好都有呢兩隊其中一隊（極少數情況），就強制放入負載最少嘅盤
+            if (!placed) {
+                let minIdx = 0;
+                for (let i = 1; i < 4; i++) {
+                    if (tables[i].length < tables[minIdx].length) minIdx = i;
+                }
+                tables[minIdx].push(m);
+                tableBusyTeams[minIdx].add(m.t1);
+                tableBusyTeams[minIdx].add(m.t2);
+            }
+        });
+
         let html = '<div class="grid-2">';
         tables.forEach((t, i) => {
             html += `<div><h3>盤 ${i+1}</h3><ul>`;
@@ -523,7 +551,6 @@
         if(!isAdmin) return;
         let st = calculateStandings(state.youthTeams, state.youthMatches);
         if(!st[3]) { alert('聯賽隊伍不足4隊或尚未完成'); return; }
-        // 1st vs 4th, 2nd vs 3rd
         youthBracketState.sf = [
             {t1: st[0].name, t2: st[3].name, s1:'', s2:'', w:''},
             {t1: st[1].name, t2: st[2].name, s1:'', s2:'', w:''}
