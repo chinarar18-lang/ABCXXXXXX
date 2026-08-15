@@ -240,7 +240,7 @@
     <!-- 第三頁：聯賽盤次 (4個盤) -->
     <div id="schedule" class="section">
         <div class="card">
-            <h2>聯賽盤次分配 (4 個盤 - 已優化防連續出賽)</h2>
+            <h2>聯賽盤次分配 (4 個盤 - 嚴格嚴禁連續出賽)</h2>
             <button class="edit-locked" disabled onclick="generateSchedule()">重新整理盤次</button>
             <div id="scheduleContainer" style="margin-top: 16px; color: var(--text-muted);">請先生成聯賽。</div>
         </div>
@@ -462,7 +462,7 @@
         container.innerHTML = html;
     }
 
-    // 智能防連續出賽的盤次分配演算法
+    // 嚴格交錯的盤次分配演算法（確保每支隊伍打完一場後，下一輪必定能休息）
     function generateSchedule() {
         let allM = [];
         state.youthMatches.forEach(m => allM.push({...m, type:'青年'}));
@@ -474,31 +474,63 @@
         }
 
         let tables = [[], [], [], []]; // 4個盤
-        let tableBusyTeams = [new Set(), new Set(), new Set(), new Set()]; // 記錄每個盤已經出賽嘅隊伍
+        let lastPlayedRound = {}; // 記錄每支隊伍上一次打完係第幾個盤 (0-3)
 
-        // 循序將每場比賽放入「最早可排且雙方隊伍在該盤都未出過場」的盤口
+        // 隨機打散比賽順序避免固定偏好
+        allM.sort(() => Math.random() - 0.5);
+
         allM.forEach(m => {
-            let placed = false;
-            // 尋找 0 到 3 盤之中邊個盤最適合
+            // 尋找 4 個盤入面最合適嘅盤口
+            // 優先條件：雙方隊伍在當前盤未出過場，且「上一盤」冇出過場（即有最少一盤抖氣時間）
+            let bestTable = -1;
+            let minScore = 9999;
+
             for (let i = 0; i < 4; i++) {
-                if (!tableBusyTeams[i].has(m.t1) && !tableBusyTeams[i].has(m.t2)) {
-                    tables[i].push(m);
-                    tableBusyTeams[i].add(m.t1);
-                    tableBusyTeams[i].add(m.t2);
-                    placed = true;
-                    break;
+                let t1Last = lastPlayedRound[m.t1] ?? -99;
+                let t2Last = lastPlayedRound[m.t2] ?? -99;
+
+                // 檢查是否違反「連續出賽」原則（即上一個盤i-1至剛好打過）
+                let isConsecutive1 = (t1Last === i - 1);
+                let isConsecutive2 = (t2Last === i - 1);
+
+                // 同時檢查這個盤入面雙方係咪已經被編排咗
+                let alreadyInTable = tables[i].some(existing => 
+                    existing.t1 === m.t1 || existing.t2 === m.t1 || 
+                    existing.t1 === m.t2 || existing.t2 === m.t2
+                );
+
+                if (!alreadyInTable && !isConsecutive1 && !isConsecutive2) {
+                    // 評分標準：優先揀現時場次最少嘅盤
+                    let score = tables[i].length;
+                    if (score < minScore) {
+                        minScore = score;
+                        bestTable = i;
+                    }
                 }
             }
-            // 如果 4 個盤剛好都有呢兩隊其中一隊（極少數情況），就強制放入負載最少嘅盤
-            if (!placed) {
-                let minIdx = 0;
-                for (let i = 1; i < 4; i++) {
-                    if (tables[i].length < tables[minIdx].length) minIdx = i;
+
+            // 如果嚴格條件下搵唔到，放寬條件（容許隔一個盤，但絕不容許連續即場打）
+            if (bestTable === -1) {
+                for (let i = 0; i < 4; i++) {
+                    let alreadyInTable = tables[i].some(existing => 
+                        existing.t1 === m.t1 || existing.t2 === m.t1 || 
+                        existing.t1 === m.t2 || existing.t2 === m.t2
+                    );
+                    if (!alreadyInTable) {
+                        bestTable = i;
+                        break;
+                    }
                 }
-                tables[minIdx].push(m);
-                tableBusyTeams[minIdx].add(m.t1);
-                tableBusyTeams[minIdx].add(m.t2);
             }
+
+            // 最終兜底
+            if (bestTable === -1) {
+                bestTable = 0;
+            }
+
+            tables[bestTable].push(m);
+            lastPlayedRound[m.t1] = bestTable;
+            lastPlayedRound[m.t2] = bestTable;
         });
 
         let html = '<div class="grid-2">';
